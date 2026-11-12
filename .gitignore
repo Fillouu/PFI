@@ -1,0 +1,28 @@
+
+# =====================================
+# PFI - Session 5
+# =====================================
+
+# Node.js
+**/node_modules/
+**/.env
+
+# C++ et CMake
+**/build/
+**/cmake-build-*/
+**/CMakeFiles/
+**/CMakeCache.txt
+**/*.o
+**/*.exe
+
+# Python
+**/__pycache__/
+**/*.pyc
+
+# VS Code
+**/.vscode/
+
+# Fichiers temporaires
+**/*.log
+**/.DS_Store
+Thumbs.db
