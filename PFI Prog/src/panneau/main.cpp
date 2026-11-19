@@ -10,15 +10,41 @@
 #include "commun/ClientMqtt.h"
 #include "commun/TopicsMqtt.h"
 
+
+
+
+void traiterCommandeMqtt(
+    const std::string& topic,
+    const std::string& message)
+{
+    if (topic == TopicsMqtt::CMD_MODE)
+    {
+        if (message == "auto" || message == "manuel")
+        {
+            std::cout << "\nCommande MQTT recue : "
+                      << message << std::endl;
+        }
+        else
+        {
+            std::cerr << "\nMode MQTT invalide : "
+                      << message << std::endl;
+        }
+    }
+}
+
+
+
+
 int main(int argc, char* argv[])
 {
     std::cout << "PFI - Panneau RAM" << std::endl;
 
-    if (argc < 2)
+    if (argc < 3)
     {
         std::cerr << "Utilisation : "
                   << argv[0]
-                  << " <port serie>" << std::endl;
+                  << " <port serie> <adresse broker MQTT>"
+                  << std::endl;
         return 1;
     }
 
@@ -35,14 +61,6 @@ int main(int argc, char* argv[])
 
     std::cout << "Connexion ouverte." << std::endl;
 
-    // Connexion au broker MQTT
-    if (argc < 3)
-    {
-        std::cerr << "Adresse du broker MQTT manquante."
-                << std::endl;
-        return 1;
-    }
-
     ClientMqtt mqtt;
 
     if (!mqtt.connecter(argv[2]))
@@ -52,16 +70,21 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    // Premier test de publication MQTT
-    if (mqtt.publier("RAM/panneau/etats/NivGB", "50"))
+
+    mqtt.definirGestionnaire(traiterCommandeMqtt);
+
+    if (!mqtt.abonner(TopicsMqtt::CMD_MODE))
     {
-        std::cout << "Message MQTT envoye." << std::endl;
+        std::cerr << "Erreur abonnement MQTT au mode."
+                << std::endl;
+
+        mqtt.deconnecter();
+        panneau.deconnecter();
+        return 1;
     }
-    else
-    {
-        std::cerr << "Erreur de publication MQTT."
-                  << std::endl;
-    }
+
+    std::cout << "Abonnement MQTT au mode demande." << std::endl;
+
 
     while (true)
     {
@@ -136,7 +159,6 @@ int main(int argc, char* argv[])
     }
 
     mqtt.deconnecter();
-
     panneau.deconnecter();
     return 0;
 }

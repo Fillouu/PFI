@@ -11,6 +11,15 @@ ClientMqtt::ClientMqtt()
 
     client = mosquitto_new("PFI_Panneau_RAM", true, nullptr);
 
+    if (client != nullptr)
+    {
+        mosquitto_user_data_set(client, this);
+        mosquitto_message_callback_set(
+            client,
+            ClientMqtt::receptionMessage
+        );
+    }
+
     if (client == nullptr)
     {
         std::cerr << "Erreur creation client MQTT." << std::endl;
@@ -70,6 +79,7 @@ bool ClientMqtt::connecter(const std::string& adresse, int port)
     return true;
 }
 
+
 bool ClientMqtt::publier(const std::string& topic,
                          const std::string& message)
 {
@@ -91,6 +101,7 @@ bool ClientMqtt::publier(const std::string& topic,
     return resultat == MOSQ_ERR_SUCCESS;
 }
 
+
 void ClientMqtt::deconnecter()
 {
     if (connecte && client != nullptr)
@@ -101,7 +112,63 @@ void ClientMqtt::deconnecter()
     }
 }
 
+
 bool ClientMqtt::estConnecte() const
 {
     return connecte;
+}
+
+
+bool ClientMqtt::abonner(const std::string& topic)
+{
+    if (client == nullptr || !connecte)
+    {
+        return false;
+    }
+
+    int resultat = mosquitto_subscribe(
+        client,
+        nullptr,
+        topic.c_str(),
+        0
+    );
+
+    return resultat == MOSQ_ERR_SUCCESS;
+}
+
+void ClientMqtt::definirGestionnaire(
+    GestionnaireMessage gestionnaire)
+{
+    gestionnaireMessage = gestionnaire;
+}
+
+void ClientMqtt::receptionMessage(
+    struct mosquitto*,
+    void* contexte,
+    const struct mosquitto_message* message)
+{
+    if (contexte == nullptr || message == nullptr ||
+        message->topic == nullptr)
+    {
+        return;
+    }
+
+    ClientMqtt* mqtt = static_cast<ClientMqtt*>(contexte);
+
+    std::string topic(message->topic);
+
+    std::string contenu;
+
+    if (message->payload != nullptr && message->payloadlen > 0)
+    {
+        contenu.assign(
+            static_cast<const char*>(message->payload),
+            static_cast<std::size_t>(message->payloadlen)
+        );
+    }
+
+    if (mqtt->gestionnaireMessage != nullptr)
+    {
+        mqtt->gestionnaireMessage(topic, contenu);
+    }
 }
