@@ -36,4 +36,35 @@ std::string ControlePanneau::obtenirMode() const
     return "manuel";
 }
 
-// FIN DU CODE GENERE AVEC L'AIDE D'UNE IA
+
+bool ControlePanneau::definirConsigneGB(int consigne)
+{
+    if (consigne < 0 || consigne > 100)
+    {
+        return false;
+    }
+
+    consigneGB = consigne;
+    return true;
+}
+
+bool ControlePanneau::definirConsignePB(int consigne)
+{
+    if (consigne < 0 || consigne > 100)
+    {
+        return false;
+    }
+
+    consignePB = consigne;
+    return true;
+}
+
+int ControlePanneau::obtenirConsigneGB() const
+{
+    return consigneGB;
+}
+
+int ControlePanneau::obtenirConsignePB() const
+{
+    return consignePB;
+}

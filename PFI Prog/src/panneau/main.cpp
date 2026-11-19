@@ -16,6 +16,38 @@
 //  0 : manuel
 //  1 : automatique
 std::atomic<int> demandeMode{-1};
+std::atomic<int> demandeConsigneGB{-1};
+std::atomic<int> demandeConsignePB{-1};
+
+
+
+bool convertirConsigne(const std::string& texte, int& valeur)
+{
+    if (texte.empty() || texte.size() > 3)
+    {
+        return false;
+    }
+
+    int resultat = 0;
+
+    for (char caractere : texte)
+    {
+        if (caractere < '0' || caractere > '9')
+        {
+            return false;
+        }
+
+        resultat = resultat * 10 + (caractere - '0');
+    }
+
+    if (resultat > 100)
+    {
+        return false;
+    }
+
+    valeur = resultat;
+    return true;
+}
 
 
 
@@ -23,27 +55,54 @@ void traiterCommandeMqtt(
     const std::string& topic,
     const std::string& message)
 {
-    if (topic != TopicsMqtt::CMD_MODE)
+    if (topic == TopicsMqtt::CMD_MODE)
     {
+        if (message == "manuel")
+        {
+            demandeMode.store(0);
+            std::cout << "\nCommande recue : manuel"
+                      << std::endl;
+        }
+        else if (message == "auto")
+        {
+            demandeMode.store(1);
+            std::cout << "\nCommande recue : auto"
+                      << std::endl;
+        }
+        else
+        {
+            std::cerr << "\nMode MQTT invalide : "
+                      << message << std::endl;
+        }
+
         return;
     }
 
-    if (message == "manuel")
+    int valeur = 0;
+
+    if (topic == TopicsMqtt::CMD_NIV_GB)
     {
-        demandeMode.store(0);
-        std::cout << "\nCommande recue : manuel"
-                  << std::endl;
+        if (convertirConsigne(message, valeur))
+        {
+            demandeConsigneGB.store(valeur);
+        }
+        else
+        {
+            std::cerr << "\nConsigne GB invalide"
+                      << std::endl;
+        }
     }
-    else if (message == "auto")
+    else if (topic == TopicsMqtt::CMD_NIV_PB)
     {
-        demandeMode.store(1);
-        std::cout << "\nCommande recue : auto"
-                  << std::endl;
-    }
-    else
-    {
-        std::cerr << "\nMode MQTT invalide : "
-                  << message << std::endl;
+        if (convertirConsigne(message, valeur))
+        {
+            demandeConsignePB.store(valeur);
+        }
+        else
+        {
+            std::cerr << "\nConsigne PB invalide"
+                      << std::endl;
+        }
     }
 }
 
@@ -100,6 +159,21 @@ int main(int argc, char* argv[])
 
     std::cout << "Abonnement MQTT au mode demande." << std::endl;
 
+    // Abonnement aux consignes des deux bassins
+    if (!mqtt.abonner(TopicsMqtt::CMD_NIV_GB) ||
+        !mqtt.abonner(TopicsMqtt::CMD_NIV_PB))
+    {
+        std::cerr << "Erreur abonnement consignes MQTT"
+                  << std::endl;
+
+        mqtt.deconnecter();
+        panneau.deconnecter();
+        return 1;
+    }
+
+    std::cout << "Abonnements aux consignes demandes."<< std::endl;
+
+
     ControlePanneau controle;
 
     // Publier le mode initial
@@ -138,6 +212,30 @@ int main(int argc, char* argv[])
             }
         }
 
+
+        int nouvelleConsigneGB = demandeConsigneGB.exchange(-1);
+        int nouvelleConsignePB = demandeConsignePB.exchange(-1);
+
+        if (nouvelleConsigneGB != -1)
+        {
+            if (controle.definirConsigneGB(nouvelleConsigneGB))
+            {
+                std::cout << "\nNouvelle consigne GB : "
+                        << controle.obtenirConsigneGB()
+                        << " %" << std::endl;
+            }
+        }
+
+        if (nouvelleConsignePB != -1)
+        {
+            if (controle.definirConsignePB(nouvelleConsignePB))
+            {
+                std::cout << "\nNouvelle consigne PB : "
+                        << controle.obtenirConsignePB()
+                        << " %" << std::endl;
+            }
+        }
+
         PanelReading lecture{};
 
         if (!panneau.lireCapteurs(lecture))
@@ -146,6 +244,7 @@ int main(int argc, char* argv[])
                       << panneau.obtenirErreur()
                       << std::endl;
 
+            mqtt.deconnecter();
             panneau.deconnecter();
             return 1;
         }

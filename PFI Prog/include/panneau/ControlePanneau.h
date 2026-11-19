@@ -19,7 +19,17 @@ public:
 
     std::string obtenirMode() const;
 
+    bool definirConsigneGB(int consigne);
+    bool definirConsignePB(int consigne);
+
+    int obtenirConsigneGB() const;
+    int obtenirConsignePB() const;
+
 private:
     ModePanneau modeActuel;
+
+
+    int consigneGB = 0;
+    int consignePB = 0;
 };
 
