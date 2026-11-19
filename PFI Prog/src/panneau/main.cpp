@@ -90,32 +90,23 @@ int main(int argc, char* argv[])
         niveauGB = std::clamp(niveauGB, 0, 100);
         niveauPB = std::clamp(niveauPB, 0, 100);
 
-        if (!mqtt.publier(TopicsMqtt::NIV_GB,
-                        std::to_string(niveauGB)))
+        if (!mqtt.publier(TopicsMqtt::NIV_GB,std::to_string(niveauGB)))
         {
             std::cerr << "Erreur publication niveau GB" << std::endl;
         }
 
-        if (!mqtt.publier(TopicsMqtt::NIV_PB,
-                        std::to_string(niveauPB)))
+        if (!mqtt.publier(TopicsMqtt::NIV_PB,std::to_string(niveauPB)))
         {
             std::cerr << "Erreur publication niveau PB" << std::endl;
         }
 
-        // Limiter les valeurs MQTT entre 0 et 100 %
-        niveauGB = std::clamp(niveauGB, 0, 100);
-        niveauPB = std::clamp(niveauPB, 0, 100);
+        // Publication de la temperature du petit bassin
+        int temperaturePB = static_cast<int>(std::lround(lecture.temperaturePetitBassin));
 
-        if (!mqtt.publier(TopicsMqtt::NIV_GB, std::to_string(niveauGB)))
+        if (!mqtt.publier(TopicsMqtt::TMP_PB,std::to_string(temperaturePB)))
         {
-            std::cerr << "Erreur publication niveau GB" << std::endl;
+            std::cerr << "Erreur publication temperature PB" << std::endl;
         }
-
-        if (!mqtt.publier(TopicsMqtt::NIV_PB, std::to_string(niveauPB)))
-        {
-            std::cerr << "Erreur publication niveau PB" << std::endl;
-        }
-
 
         std::cout << "\n===== PANNEAU RAM =====" << std::endl;
 
