@@ -17,7 +17,7 @@
 
 | Organiser les dossiers et vérifier la compilation C++ des programmes panneau RAM et Power Meter. | Jeudi 12 novembre |  Fait | — | Préparer une démonstration et des commits distincts. |
 
-| Faire communiquer le Raspberry Pi avec le panneau RAM et lire les niveaux des deux bassins. | Jeudi 19 novembre | à faire | — | Afficher localement les valeurs acquises. |
+| Faire communiquer le Raspberry Pi avec le panneau RAM et lire les niveaux des deux bassins. | Jeudi 19 novembre | fait  | — | Afficher localement les valeurs acquises. |
 
 | Mettre en place la communication MQTT du panneau RAM : publier les états et recevoir les commandes. | Jeudi 19 novembre | à faire | — | Respecter les topics définis à l'annexe I. |
 
