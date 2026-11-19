@@ -1,5 +1,5 @@
 # Planification de la PFI — Programmation temps réel
-// Chat GPT a aider a la conception de la Planification 
+<!-- Planification élaborée avec l'aide de ChatGPT. -->
 
 **Cours :** 247-GFB-LG — Programmation temps réel  
 **Session :** Automne 2026  
@@ -11,90 +11,126 @@
 
 | Livrable | Date prévue | État | Date réelle | Note |
 |---|---|---|---|---|
+| Déposer le fichier `planification.md` dans le dépôt GitHub. | Jeudi 12 novembre | fait | 12 novembre 2026 | Premier livrable obligatoire. |
 
+| Organiser les dossiers et vérifier la compilation C++ des programmes panneau RAM et Power Meter. | Jeudi 12 novembre | en cours | — | Structure et compilation du panneau RAM avancées. La compilation d'un programme Power Meter complet n'est pas encore démontrée. |
 
-| Déposer le fichier `planification.md` dans le dépôt GitHub. | Jeudi 12 novembre |  Fait | 12 Novembre 2026 | Premier livrable obligatoire. |
+| Faire communiquer le Raspberry Pi avec le panneau RAM et lire les niveaux des deux bassins. | Jeudi 19 novembre | fait | 19 novembre 2026 | Communication et lecture des niveaux vérifiées avec le simulateur RAM. Validation sur le panneau physique à conserver pour le livrable du 26 novembre. |
 
-| Organiser les dossiers et vérifier la compilation C++ des programmes panneau RAM et Power Meter. | Jeudi 12 novembre |  Fait | — | Préparer une démonstration et des commits distincts. |
+| Mettre en place la communication MQTT du panneau RAM : publier les états et recevoir les commandes. | Jeudi 19 novembre | en cours | — | Publication des niveaux et de la température et réception de certaines commandes testées. Il reste à intégrer et vérifier toutes les commandes et tous les états nécessaires au fonctionnement du panneau. |
 
-| Faire communiquer le Raspberry Pi avec le panneau RAM et lire les niveaux des deux bassins. | Jeudi 19 novembre | fait  | — | Afficher localement les valeurs acquises. |
+| Établir une première communication série avec le Power Meter. | Jeudi 19 novembre | à faire  | — | Appareil non disponible et protocole série absent de l'énoncé. Nouvelle date visée : 3 décembre 2026, sous réserve de l'accès au matériel et au protocole; signaler le blocage au professeur. Une simulation MQTT ne remplace pas une lecture série réelle. |
 
-| Mettre en place la communication MQTT du panneau RAM : publier les états et recevoir les commandes. | Jeudi 19 novembre | à faire | — | Respecter les topics définis à l'annexe I. |
+| Programmer la régulation PID du niveau des deux bassins du panneau RAM. | Jeudi 26 novembre | en cours | — | Réaliser et tester les deux calculs PID, puis les intégrer aux commandes du panneau avec sorties bornées et comportement sécuritaire. |
 
-| Établir une première communication série avec le Power Meter. | Jeudi 19 novembre | à faire | — | Vérifier la lecture d'au moins une donnée réelle. |
+| Détecter les débordements et dépassements de niveau, transmettre les alarmes et tester les sécurités du panneau RAM. | Jeudi 26 novembre | à faire | — | Livrable obligatoire : alarmes et systèmes de secours fonctionnels et démontrables, y compris en cas de panne de communication. |
 
-| Programmer la régulation PID du niveau des deux bassins du panneau RAM. | Jeudi 26 novembre | à faire | — | Réguler les deux niveaux avec des sorties de commande bornées. |
+| Faire fonctionner les modes MANUEL et AUTOMATIQUE et le changement de consigne de niveau. | Jeudi 26 novembre | en cours | — | Réception et mémorisation logicielle commencées. Reste à commander réellement la pompe et les valves selon le mode et à synchroniser les états locaux et MQTT. |
 
-| Détecter les débordements et dépassements de niveau, transmettre les alarmes et tester les sécurités du panneau RAM. | Jeudi 26 novembre | à faire | — | Livrable obligatoire du 26 novembre : alarmes et systèmes de secours fonctionnels. |
+| Vérifier le fonctionnement du PID de niveau lorsqu'une purge est ouverte. | Jeudi 26 novembre | à faire | — | Démontrer la réaction de la régulation lorsqu'une purge est ouverte. Ne comprend pas la programmation de l'unité distincte des valves de purge (section 7). |
 
-| Faire fonctionner les modes MANUEL et AUTOMATIQUE et le changement de consigne de niveau. | Jeudi 26 novembre | à faire | — | Commandes locales et MQTT cohérentes; pompe et valves selon le mode. |
+| Documenter les premiers essais de niveau et les réglages du PID. | Jeudi 26 novembre | à faire | — | Décrire la méthode de réglage, les gains essayés, les résultats et conserver une courbe pour chaque choix de gains. |
 
-| Vérifier le fonctionnement du PID de niveau lorsqu'une purge est ouverte. | Jeudi 26 novembre | à faire | — | Essai avec purge du panneau; ne comprend pas la programmation de l'unité distincte des valves de purge (section 7). |
+| Réguler la température du petit bassin en maintenant le contrôle de niveau. | Jeudi 3 décembre | à faire | — | Tester une consigne initiale, puis son changement, pendant que le niveau demeure régulé; documenter les réglages. |
 
-| Documenter les premiers essais de niveau et les réglages du PID. | Jeudi 26 novembre | à faire | — | Conserver les résultats et les observations dans le dépôt. |
+| Finaliser l'affichage local et la synchronisation des commandes du panneau RAM. | Jeudi 3 décembre | à faire | — | Vérifier les modes et commandes depuis la console locale et le superviseur MQTT, sans désaccord entre les états. |
 
-| Réguler la température du petit bassin en maintenant le contrôle de niveau. | Jeudi 3 décembre | à faire | — | Tester une consigne initiale et un changement de consigne. |
+| Lire et afficher les mesures du Power Meter (tensions, courants, puissance, énergie, facteur de puissance). | Jeudi 3 décembre | à faire | — | Confirmer le modèle, le protocole et les unités à partir de l'appareil ou de la documentation technique; vérifier des données réelles. Dépend de la disponibilité matérielle. |
 
-| Finaliser l'affichage local et la synchronisation des commandes du panneau RAM. | Jeudi 3 décembre | à faire | — | Vérifier les changements depuis le clavier SSH et le superviseur MQTT. |
+| Publier les mesures du Power Meter sur les topics MQTT prévus. | Jeudi 3 décembre | à faire | — | Utiliser les huit topics de l'annexe I et publier chaque nouvelle valeur lorsque la mesure change. |
 
-| Lire et afficher les mesures du Power Meter (tensions, courants, puissance, énergie, facteur de puissance). | Jeudi 3 décembre | à faire | — | Confirmer les valeurs et unités selon l'appareil et le protocole fourni. |
+| Détecter la perte de communication avec le Power Meter et émettre l'alarme correspondante. | Jeudi 3 décembre | à faire | — | Vérifier la détection d'une perte du lien et le comportement au retour de la communication. |
 
-| Publier les mesures du Power Meter sur les topics MQTT prévus. | Jeudi 3 décembre | à faire | — | Publier les changements selon l'annexe I. |
+| Revoir la structure du code C++ des deux unités (SOLID, The Power of 10, machines à états si pertinentes). | Jeudi 10 décembre | à faire | — | Vérifier la séparation des responsabilités, la lisibilité, la gestion des erreurs et la conformité du code au plan de conception. |
 
-| Détecter la perte de communication avec le Power Meter et émettre l'alarme correspondante. | Jeudi 3 décembre | à faire | — | Préparer un essai de déconnexion/reconnexion. |
+| Rédiger les documents de conception, de réglage et les plans d'essai nécessaires pour les deux unités. | Jeudi 10 décembre | à faire | — | Conserver des documents courts expliquant le code, ses paramètres et les résultats d'essai. |
 
-| Revoir la structure du code C++ des deux unités (SOLID, The Power of 10, machines à états si pertinentes). | Jeudi 10 décembre | à faire | — | Vérifier la lisibilité et les réactions attendues. |
+| Rédiger la documentation de maintenance du panneau RAM et celle du Power Meter. | Jeudi 10 décembre | à faire | — | Pour chaque unité : démarrage, essais de sécurité, cas limites, pannes possibles, réactions attendues et démarches de diagnostic. |
 
-| Rédiger les documents de conception, de réglage et les plans d'essai nécessaires pour les deux unités. | Jeudi 10 décembre | à faire | — | Documents courts accompagnant le code, selon les attentes du professeur. |
+| Faire les essais de démonstration et de pannes des deux unités. | Jeudi 10 décembre | à faire | — | Vérifier les scénarios applicables : perte de lien série, appareil muet, capteur défaillant, débordement, broker arrêté, commande invalide, arrêt et relance. |
 
-| Rédiger la documentation de maintenance du panneau RAM et celle du Power Meter. | Jeudi 10 décembre | à faire | — | Mise en marche, essais sécuritaires, limites, pannes et réaction attendue. |
+| Vérifier les fichiers, compiler les deux programmes et pousser le travail final sur GitHub. | Vendredi 11 décembre | à faire | — | Dépôt final et documents remis avant 23 h. |
 
-| Faire les essais de démonstration et de pannes des deux unités. | Jeudi 10 décembre | à faire | — | Tester les scénarios applicables : communication, capteurs, débordement, commandes, arrêt et relance. |
+## Priorités de réalisation
 
-| Vérifier les fichiers, compiler les deux programmes et pousser le travail final sur GitHub. | Vendredi 11 décembre | à faire | — | Remise finale avant 23 h. |
+### Pour le suivi du 19 novembre
+
+- Présenter la communication avec le simulateur RAM, la lecture des niveaux et les échanges MQTT effectivement validés.
+- Montrer les commits distincts et les essais correspondants.
+- Signaler le blocage de la liaison série du Power Meter et la nouvelle date visée; ne pas le déclarer fonctionnel sans lecture réelle.
+
+### Pour le livrable obligatoire du 26 novembre
+
+1. Terminer le calcul PID des deux bassins et tester ses limites.
+2. Intégrer la régulation aux commandes réelles du panneau RAM, en prévoyant un comportement sécuritaire.
+3. Terminer les modes MANUEL/AUTOMATIQUE, les commandes locales/MQTT et les changements de consigne.
+4. Réaliser les alarmes, les protections de débordement et les systèmes de secours.
+5. Tester la régulation avec une purge ouverte.
+6. Documenter les réglages PID, les essais et les courbes obtenues.
+
+### Pour le 3 décembre
+
+- Réguler la température du petit bassin en maintenant le niveau.
+- Finaliser la cohérence de la console locale et du superviseur MQTT.
+- Si le protocole et l'appareil sont accessibles, terminer les lectures réelles et les publications MQTT du Power Meter ainsi que la détection de perte de lien.
+
+### Pour le 10 et le 11 décembre
+
+- Finaliser les vérifications de qualité du code et les documents.
+- Effectuer les essais de pannes et valider la documentation de maintenance.
+- Confirmer que les programmes compilent depuis le dépôt avant la remise finale du 11 décembre à 23 h.
 
 ## Mise à jour chaque jeudi
 
-- Avant le laboratoire du jeudi, mettre la planification à jour et pousser les changements sur GitHub (consigne : **avant 8 h**).
-- **Ne jamais changer la date prévue** : cette date est fixée dans la planification initiale du 12 novembre.
-- Utiliser les états : `à faire`, `en cours`, `fait`, `en retard`.
-- Lorsqu'un livrable est terminé, indiquer la date d'achèvement dans **Date réelle**.
-- En cas de retard, écrire la cause et la nouvelle date visée dans **Note**, sans modifier **Date prévue**.
-- Un livrable `fait` doit être visible dans le dépôt et démontrable lorsqu'il s'agit d'une fonctionnalité.
+- Mettre la planification à jour et pousser le travail sur GitHub **avant 8 h le jeudi**, jusqu'au 10 décembre, conformément au gabarit du professeur. La mise à jour faite après un laboratoire est complémentaire : elle ne remplace pas celle d'avant 8 h.
+- **Ne jamais changer la date prévue :** les dates du tableau initial du 12 novembre demeurent fixes.
+- Utiliser uniquement les états `à faire`, `en cours`, `fait` ou `en retard`.
+- Inscrire la **date réelle** seulement lorsque le livrable est terminé et vérifié.
+- Pour chaque retard, indiquer la cause et une nouvelle date visée dans **Note**.
+- Un livrable `fait` doit être visible dans le dépôt GitHub et démontrable. Les tests simulés et les tests sur matériel réel doivent être distingués.
+- Présenter au suivi du jeudi la démonstration, le code, les essais et les commits de la semaine.
 
 ## Préparation des suivis
 
 | Date | Démonstration / revue prévue |
 |---|---|
-
-
 | Jeudi 12 novembre | Planification ajoutée au dépôt GitHub. |
-| Jeudi 19 novembre | Communication panneau RAM, acquisition des niveaux, premiers échanges MQTT et lecture série du Power Meter. |
-| Jeudi 26 novembre | Livrable obligatoire : PID de niveau des deux bassins, modes, changement de consigne, essai avec purge, alarmes et sécurités. |
-| Jeudi 3 décembre | Température du petit bassin, synchronisation, mesures MQTT du Power Meter et alarme de perte de lien. |
-| Jeudi 10 décembre | Bilan des essais, revue de code et documents de maintenance des deux unités, en préparation de la remise. |
+| Jeudi 19 novembre | Communication RAM et lectures de niveaux; MQTT partiellement fonctionnel; signalement du blocage Power Meter. |
+| Jeudi 26 novembre | **Livrable obligatoire :** PID des deux bassins, modes, changements de consigne, purge, alarmes et sécurités fonctionnels. |
+| Jeudi 3 décembre | Température du petit bassin, synchronisation locale/MQTT, mesures du Power Meter et perte de lien si matériel disponible. |
+| Jeudi 10 décembre | Mise à jour avant 8 h : revue du code, essais, documentation de maintenance et préparation de la remise. |
 
-## Exemples de messages Git
+## Commits Git
 
-Une seule idée par commit, dans une seule partie du système.
+Un commit = **une seule modification fonctionnelle dans une seule partie du système**, suivie d'un test lorsque c'est applicable. Les messages identifient la partie et l'action précise.
 
 ```text
-planif : ajoute la planification des sections 3 et 6
+planif : met a jour le suivi du 19 novembre
 panneau : lit les niveaux des deux bassins
 panneau : publie les niveaux sur MQTT
-pid : regule le niveau du grand bassin
-pid : regule le niveau du petit bassin
-panneau : synchronise les modes manuel et automatique
-panneau : detecte les alarmes de debordement
-powermeter : lit les mesures par liaison serie
+panneau : recoit les consignes de niveau MQTT
+pid : calcule la commande du grand bassin
+pid : calcule la commande du petit bassin
+panneau : applique la regulation des niveaux
+panneau : gere les modes manuel et automatique
+panneau : detecte les debordements
+essai : verifie le PID avec une purge ouverte
+powermeter : ouvre la liaison serie
+powermeter : lit les mesures energetiques
 powermeter : publie les valeurs sur MQTT
-powermeter : detecte la perte de communication
+powermeter : signale la perte du lien
 maintenance : documente les essais du panneau RAM
 maintenance : documente les pannes du Power Meter
 ```
 
-## Limites de la planification
+Ces exemples ne sont **pas** une liste de commits déjà réalisés : chaque message doit correspondre aux modifications réellement testées et enregistrées.
 
-Ce fichier couvre **uniquement les sections 3 et 6** de l'énoncé d'intégration. Il ne planifie pas la programmation du superviseur Web (section 2), du mélangeur (section 4), de la balance (section 5), des capteurs des valves de purge (section 7), ni du système d'aspiration (section 8). Les interactions MQTT nécessaires aux deux unités sont incluses, mais la réalisation des autres unités n'est pas attribuée à ce plan.
+## Limites de cette planification
 
-**Références de travail :** grille d'évaluation PFI en Programmation temps réel (automne 2026), consignes « Planification de la PFI » (automne 2026), énoncé *Système de contrôle du panneau RAM* (révision automne 2025), sections 3, 6 et annexe I. En cas de différence, suivre les consignes et la grille actuelles du professeur.
+Cette planification porte sur les **sections 3 et 6 uniquement**, comme défini lors de sa création. Elle ne planifie pas les sections 2, 4, 5, 7 et 8. Toutefois, la grille de correction du cours porte sur **les six unités Raspberry Pi** : cette limitation de portée ne retire donc pas les critères des autres unités de l'évaluation. La répartition effective des autres parties doit être confirmée avec le professeur.
+
+## Références
+
+- *247-GFB-LG-AUT2026-PFI-Gabarit-Planification.pdf* — dates, tableau, suivi du jeudi, commits.
+- *247-GFB-LG-AUT2026-PFI-Grille.pdf* — livrable obligatoire du 26 novembre et critères d'évaluation.
+- *Projet_Integration_TSO_session_5_automne_2025.docx* — sections 3 et 6 et annexe I (topics MQTT).
