@@ -1,6 +1,3 @@
-
-# DEBUT DU CODE GENERE AVEC L'AIDE D'UNE IA
-
 cmake_minimum_required(VERSION 3.16)
 
 project(PFI_Programmation_Temps_Reel LANGUAGES CXX)
@@ -31,6 +28,14 @@ target_include_directories(bibliotheque_panneau PUBLIC
 
 add_library(interface_panneau
     src/panneau/InterfacePanneau.cpp
+)
+
+add_library(controle_panneau
+    src/panneau/ControlePanneau.cpp
+)
+
+target_include_directories(controle_panneau PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 target_include_directories(interface_panneau PUBLIC
@@ -72,6 +77,5 @@ add_executable(panneau_ram
 target_link_libraries(panneau_ram PRIVATE
     interface_panneau
     client_mqtt
+    controle_panneau
 )
-
-# FIN DU CODE GENERE AVEC L'AIDE D'UNE IA

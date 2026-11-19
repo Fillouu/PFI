@@ -5,11 +5,17 @@
 #include <thread>
 #include <algorithm>
 #include <cmath>
+#include <atomic>
 
+#include "panneau/ControlePanneau.h"
 #include "panneau/InterfacePanneau.h"
 #include "commun/ClientMqtt.h"
 #include "commun/TopicsMqtt.h"
 
+// -1 : aucune commande
+//  0 : manuel
+//  1 : automatique
+std::atomic<int> demandeMode{-1};
 
 
 
@@ -17,18 +23,27 @@ void traiterCommandeMqtt(
     const std::string& topic,
     const std::string& message)
 {
-    if (topic == TopicsMqtt::CMD_MODE)
+    if (topic != TopicsMqtt::CMD_MODE)
     {
-        if (message == "auto" || message == "manuel")
-        {
-            std::cout << "\nCommande MQTT recue : "
-                      << message << std::endl;
-        }
-        else
-        {
-            std::cerr << "\nMode MQTT invalide : "
-                      << message << std::endl;
-        }
+        return;
+    }
+
+    if (message == "manuel")
+    {
+        demandeMode.store(0);
+        std::cout << "\nCommande recue : manuel"
+                  << std::endl;
+    }
+    else if (message == "auto")
+    {
+        demandeMode.store(1);
+        std::cout << "\nCommande recue : auto"
+                  << std::endl;
+    }
+    else
+    {
+        std::cerr << "\nMode MQTT invalide : "
+                  << message << std::endl;
     }
 }
 
@@ -85,9 +100,44 @@ int main(int argc, char* argv[])
 
     std::cout << "Abonnement MQTT au mode demande." << std::endl;
 
+    ControlePanneau controle;
+
+    // Publier le mode initial
+    if (!mqtt.publier(
+            TopicsMqtt::MODE,
+            controle.obtenirMode()))
+    {
+        std::cerr << "Erreur publication mode initial"
+                << std::endl;
+    }
+
+
 
     while (true)
     {
+        int commande = demandeMode.exchange(-1);
+
+        if (commande != -1)
+        {
+            std::string nouveauMode =
+                (commande == 1) ? "auto" : "manuel";
+
+            if (controle.changerMode(nouveauMode))
+            {
+                std::cout << "\nMode actuel : "
+                        << controle.obtenirMode()
+                        << std::endl;
+
+                if (!mqtt.publier(
+                        TopicsMqtt::MODE,
+                        controle.obtenirMode()))
+                {
+                    std::cerr << "Erreur publication du mode"
+                            << std::endl;
+                }
+            }
+        }
+
         PanelReading lecture{};
 
         if (!panneau.lireCapteurs(lecture))
