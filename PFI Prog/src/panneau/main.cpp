@@ -10,6 +10,7 @@
 
 #include "panneau/ControlePanneau.h"
 #include "panneau/InterfacePanneau.h"
+#include "panneau/RegulationBassins.h"
 #include "commun/ClientMqtt.h"
 #include "commun/TopicsMqtt.h"
 
@@ -189,6 +190,14 @@ int main(int argc, char* argv[])
 
     ControlePanneau controle;
 
+    RegulationBassins regulation;
+
+    bool sortiesAutoActives = false;
+
+    const bool simulation =
+        std::string(argv[1]) == "/tmp/ttyRAM";
+
+
     // Publier le mode initial
     if (!mqtt.publier(
             TopicsMqtt::MODE,
@@ -291,6 +300,124 @@ int main(int argc, char* argv[])
             mqtt.deconnecter();
             panneau.deconnecter();
             return 1;
+        }
+
+
+        const bool debordement =
+            lecture.debordementGrosBassin ||
+            lecture.debordementPetitBassin;
+
+        const bool niveauInvalide =
+            !std::isfinite(lecture.niveauGrosBassin) ||
+            !std::isfinite(lecture.niveauPetitBassin) ||
+            lecture.niveauGrosBassin < -2.0 ||
+            lecture.niveauPetitBassin < -2.0 ||
+            lecture.niveauGrosBassin >= 95.0 ||
+            lecture.niveauPetitBassin >= 95.0;
+
+        if ((debordement || niveauInvalide) &&
+            !controle.estArretUrgenceActif())
+        {
+            controle.declencherArretUrgence();
+            std::cerr << "ARRET : anomalie des niveaux"
+                    << std::endl;
+        }
+
+        const bool modeAuto =
+            controle.obtenirMode() == "auto";
+
+        const bool consignesValides =
+            controle.obtenirConsigneGB() > 0 &&
+            controle.obtenirConsignePB() > 0;
+
+        const bool regulationAutorisee =
+            simulation &&
+            modeAuto &&
+            consignesValides &&
+            !controle.estArretUrgenceActif() &&
+            !debordement &&
+            !niveauInvalide;
+
+        if (regulationAutorisee)
+        {
+            CommandesBassins cmd = regulation.calculer(
+                controle.obtenirConsigneGB(),
+                controle.obtenirConsignePB(),
+                lecture.niveauGrosBassin,
+                lecture.niveauPetitBassin,
+                1.0,
+                true
+            );
+
+            bool succes = true;
+
+            if (!cmd.pompe)
+            {
+                succes = panneau.commanderPompe(false);
+            }
+
+            if (succes)
+            {
+                succes = panneau.commanderValveGB(cmd.valveGB);
+            }
+
+            if (succes)
+            {
+                succes = panneau.commanderValvePB(cmd.valvePB);
+            }
+
+            if (succes && cmd.pompe)
+            {
+                succes = panneau.commanderPompe(true);
+            }
+
+            if (!succes)
+            {
+                controle.declencherArretUrgence();
+                regulation.reinitialiser();
+
+                std::cerr << "ARRET : erreur commande actionneur : "
+                        << panneau.obtenirErreur()
+                        << std::endl;
+
+                if (!panneau.mettreEnSecuriteSimulateur())
+                {
+                    std::cerr << "ERREUR CRITIQUE : "
+                            << "mise en securite non confirmee"
+                            << std::endl;
+                }
+
+                sortiesAutoActives = false;
+            }
+            else
+            {
+                sortiesAutoActives = true;
+
+                std::cout << "PID GB : " << cmd.valveGB
+                        << " % | PID PB : " << cmd.valvePB
+                        << " % | Pompe : "
+                        << (cmd.pompe ? "ON" : "OFF")
+                        << std::endl;
+            }
+        }
+        else
+        {
+            regulation.reinitialiser();
+
+            if (sortiesAutoActives ||
+                controle.estArretUrgenceActif())
+            {
+                if (!panneau.mettreEnSecuriteSimulateur())
+                {
+                    std::cerr << "ERREUR CRITIQUE : "
+                            << "arret des actionneurs non confirme"
+                            << std::endl;
+
+                    controle.declencherArretUrgence();
+                }
+
+                sortiesAutoActives = false;
+            }
         }
 
 

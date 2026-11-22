@@ -66,6 +66,18 @@ target_link_libraries(client_mqtt PUBLIC
     ${MOSQUITTO_LIB}
 )
 
+
+add_library(regulation_bassins
+    src/panneau/Pid.cpp
+    src/panneau/RegulationBassins.cpp
+)
+
+target_include_directories(regulation_bassins PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+
+
 # ========================================
 # Programme principal - Panneau RAM
 # ========================================
@@ -78,4 +90,5 @@ target_link_libraries(panneau_ram PRIVATE
     interface_panneau
     client_mqtt
     controle_panneau
+    regulation_bassins
 )

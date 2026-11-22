@@ -11,7 +11,7 @@ static const int DELAI_REPONSE_MAX_MS = 200;
 
 // Le sens de chaque valve
 // true = fermée à 4 mA et ouverte à 20 mA; false = fermée à 20mA et ouverte à 4mA.
-static const bool OUVRE_AU_COURANT_FORT[4] = {true, true, true, true};
+static const bool OUVRE_AU_COURANT_FORT[4] = {false, true, false, true};
 
 static const double RELECTURE_4MA[4] = {4.0, 4.0, 4.0, 4.0};
 static const double RELECTURE_20MA[4] = {20.0, 20.0, 20.0, 20.0};
