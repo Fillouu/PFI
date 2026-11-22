@@ -199,24 +199,37 @@ int main(int argc, char* argv[])
     }
 
 
-
     while (true)
     {
-        
-        if (demandeArretUrgence != 0 && !controle.estArretUrgenceActif())
+        if (demandeArretUrgence != 0 &&
+            !controle.estArretUrgenceActif())
         {
             controle.declencherArretUrgence();
-
             demandeMode.store(-1);
 
             std::cerr << "\nARRET LOGICIEL DEMANDE"
                     << std::endl;
 
-            mqtt.publier(
-                TopicsMqtt::MODE,
-                controle.obtenirMode()
-            );
+            if (panneau.mettreEnSecuriteSimulateur())
+            {
+                std::cout << "Commandes de mise en securite acceptees"
+                        << std::endl;
+            }
+            else
+            {
+                std::cerr << "ERREUR : mise en securite non confirmee : "
+                        << panneau.obtenirErreur()
+                        << std::endl;
+            }
+
+            if (!mqtt.publier(TopicsMqtt::MODE,
+                            controle.obtenirMode()))
+            {
+                std::cerr << "Erreur publication mode MQTT"
+                        << std::endl;
+            }
         }
+
 
 
         int commande = demandeMode.exchange(-1);

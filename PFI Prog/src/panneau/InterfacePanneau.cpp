@@ -60,3 +60,35 @@ std::string InterfacePanneau::obtenirErreur() const
 {
     return panneau.lastError();
 }
+
+
+bool InterfacePanneau::mettreEnSecuriteSimulateur()
+{
+    bool succes = true;
+
+    // Arreter la pompe en priorite
+    if (!panneau.setPump(false))
+        succes = false;
+
+    // Couper les arrivees d'eau
+    if (!panneau.setHotWater(false))
+        succes = false;
+
+    if (!panneau.setColdWater(false))
+        succes = false;
+
+    // Fermer les valves proportionnelles
+    if (!panneau.setValve(Valve::HotWater, 0.0))
+        succes = false;
+
+    if (!panneau.setValve(Valve::ColdWater, 0.0))
+        succes = false;
+
+    if (!panneau.setValve(Valve::LargeTank, 0.0))
+        succes = false;
+
+    if (!panneau.setValve(Valve::SmallTank, 0.0))
+        succes = false;
+
+    return succes;
+}

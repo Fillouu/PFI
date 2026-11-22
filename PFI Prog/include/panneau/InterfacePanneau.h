@@ -17,7 +17,9 @@ public:
     bool commanderValveGB(double ouverture);
     bool commanderValvePB(double ouverture);
     bool commanderPompe(bool marche);
-    
+
+    bool mettreEnSecuriteSimulateur();
+
     void deconnecter();
     std::string obtenirErreur() const;
 
