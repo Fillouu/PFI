@@ -73,4 +73,7 @@ namespace TopicsMqtt
 
     constexpr const char* CMD_POMPE =
         "RAM/panneau/cmd/Pompe";
+
+    constexpr const char* ALARMES =
+    "RAM/panneau/etats/Alarmes";
 }

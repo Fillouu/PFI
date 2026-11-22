@@ -118,6 +118,17 @@ void traiterCommandeMqtt(
 }
 
 
+namespace
+{
+    volatile std::sig_atomic_t finProgrammeDemandee = 0;
+
+    void demanderFinProgramme(int)
+    {
+        finProgrammeDemandee = 1;
+    }
+}
+
+
 
 
 int main(int argc, char* argv[])
@@ -125,7 +136,8 @@ int main(int argc, char* argv[])
     std::cout << "PFI - Panneau RAM" << std::endl;
 
     std::signal(SIGUSR1, signalArretUrgence);
-
+    std::signal(SIGINT, demanderFinProgramme);
+    std::signal(SIGTERM, demanderFinProgramme);
 
     if (argc < 3)
     {
@@ -208,7 +220,7 @@ int main(int argc, char* argv[])
     }
 
 
-    while (true)
+    while (!finProgrammeDemandee)
     {
         if (demandeArretUrgence != 0 &&
             !controle.estArretUrgenceActif())
@@ -291,16 +303,51 @@ int main(int argc, char* argv[])
 
         PanelReading lecture{};
 
+        
+        
         if (!panneau.lireCapteurs(lecture))
         {
-            std::cerr << "Erreur de lecture : "
-                      << panneau.obtenirErreur()
+            const std::string erreurSerie =
+                panneau.obtenirErreur();
+
+            std::cerr << "\nALARME : PERTE COMMUNICATION SERIE"
                       << std::endl;
+
+            std::cerr << "Detail : " << erreurSerie
+                      << std::endl;
+
+            controle.declencherArretUrgence();
+            regulation.reinitialiser();
+            demandeMode.store(-1);
+            sortiesAutoActives = false;
+
+            const bool securiteOK =
+                panneau.mettreEnSecuriteSimulateur();
+
+            if (!securiteOK)
+            {
+                std::cerr
+                    << "ERREUR CRITIQUE : mise en securite "
+                    << "non confirmee"
+                    << std::endl;
+            }
+
+            if (!mqtt.publier(
+                    TopicsMqtt::ALARMES,
+                    "PERTE_COMMUNICATION_SERIE"))
+            {
+                std::cerr
+                    << "Erreur publication alarme MQTT"
+                    << std::endl;
+            }
 
             mqtt.deconnecter();
             panneau.deconnecter();
+
             return 1;
         }
+
+
 
 
         const bool debordement =
@@ -315,13 +362,68 @@ int main(int argc, char* argv[])
             lecture.niveauGrosBassin >= 95.0 ||
             lecture.niveauPetitBassin >= 95.0;
 
-        if ((debordement || niveauInvalide) &&
-            !controle.estArretUrgenceActif())
+        
+
+        
+        if ((debordement || niveauInvalide) && !controle.estArretUrgenceActif())
         {
             controle.declencherArretUrgence();
-            std::cerr << "ARRET : anomalie des niveaux"
+            regulation.reinitialiser();
+            demandeMode.store(-1);
+
+            std::string alarme;
+
+            if (debordement)
+            {
+                alarme = "DEBORDEMENT";
+
+                std::cerr
+                    << "\nALARME : DEBORDEMENT DETECTE"
                     << std::endl;
+            }
+            else
+            {
+                alarme = "NIVEAU_INVALIDE";
+
+                std::cerr
+                    << "\nALARME : MESURE DE NIVEAU INVALIDE"
+                    << std::endl;
+            }
+
+            std::cerr << "GB : "
+                      << lecture.niveauGrosBassin
+                      << " % | PB : "
+                      << lecture.niveauPetitBassin
+                      << " %" << std::endl;
+
+            const bool securiteOK =
+                panneau.mettreEnSecuriteSimulateur();
+
+            if (!securiteOK)
+            {
+                std::cerr
+                    << "ERREUR CRITIQUE : mise en securite "
+                    << "non confirmee"
+                    << std::endl;
+            }
+
+            if (!mqtt.publier(TopicsMqtt::ALARMES, alarme))
+            {
+                std::cerr
+                    << "Erreur publication alarme MQTT"
+                    << std::endl;
+            }
+
+            if (!mqtt.publier(
+                    TopicsMqtt::MODE,
+                    controle.obtenirMode()))
+            {
+                std::cerr
+                    << "Erreur publication mode MQTT"
+                    << std::endl;
+            }
         }
+
 
         const bool modeAuto =
             controle.obtenirMode() == "auto";
@@ -421,23 +523,6 @@ int main(int argc, char* argv[])
         }
 
 
-        if ((lecture.debordementGrosBassin ||
-            lecture.debordementPetitBassin) &&
-            !controle.estArretUrgenceActif())
-        {
-            controle.declencherArretUrgence();
-
-            demandeMode.store(-1);
-
-            std::cerr << "\nARRET LOGICIEL : DEBORDEMENT"
-                    << std::endl;
-
-            mqtt.publier(
-                TopicsMqtt::MODE,
-                controle.obtenirMode()
-            );
-        }
-
 
         // Publication des niveaux mesures
         int niveauGB = static_cast<int>(
@@ -492,12 +577,51 @@ int main(int argc, char* argv[])
                   << (lecture.debordementPetitBassin ? "OUI" : "NON")
                   << std::endl;
 
+        std::cout << "Ouverture valve GB : "
+          << lecture.ouvertureValve[1]
+          << " %" << std::endl;
+
+        std::cout << "Ouverture valve PB : "
+                << lecture.ouvertureValve[2]
+                << " %" << std::endl;
+
+        std::cout << "Courant valve PB : "
+                << lecture.courant[2]
+                << " mA" << std::endl;          
+
         std::this_thread::sleep_for(
             std::chrono::seconds(1)
         );
     }
 
+    
+    
+    std::cout << "\nARRET DU PROGRAMME DEMANDE"
+              << std::endl;
+
+    regulation.reinitialiser();
+
+    const bool securiteOK =
+        panneau.mettreEnSecuriteSimulateur();
+
+    if (securiteOK)
+    {
+        std::cout << "Commandes de mise en securite acceptees"
+                  << std::endl;
+    }
+    else
+    {
+        std::cerr << "ERREUR CRITIQUE : "
+                  << "mise en securite non confirmee : "
+                  << panneau.obtenirErreur()
+                  << std::endl;
+    }
+
     mqtt.deconnecter();
     panneau.deconnecter();
-    return 0;
+
+    std::cout << "Fermeture du programme Panneau RAM"
+              << std::endl;
+
+    return securiteOK ? 0 : 1;
 }
