@@ -25,9 +25,13 @@ public:
     int obtenirConsigneGB() const;
     int obtenirConsignePB() const;
 
+    void declencherArretUrgence();
+    bool estArretUrgenceActif() const;
+
 private:
     ModePanneau modeActuel;
 
+    bool arretUrgenceActif = false;
 
     int consigneGB = 0;
     int consignePB = 0;

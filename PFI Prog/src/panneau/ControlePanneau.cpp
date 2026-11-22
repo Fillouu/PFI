@@ -19,6 +19,11 @@ bool ControlePanneau::changerMode(
 
     if (nouveauMode == "auto")
     {
+        if (arretUrgenceActif)
+        {
+            return false;
+        }
+
         modeActuel = ModePanneau::AUTOMATIQUE;
         return true;
     }
@@ -67,4 +72,16 @@ int ControlePanneau::obtenirConsigneGB() const
 int ControlePanneau::obtenirConsignePB() const
 {
     return consignePB;
+}
+
+
+void ControlePanneau::declencherArretUrgence()
+{
+    arretUrgenceActif = true;
+    modeActuel = ModePanneau::MANUEL;
+}
+
+bool ControlePanneau::estArretUrgenceActif() const
+{
+    return arretUrgenceActif;
 }

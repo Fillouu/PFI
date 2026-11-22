@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <atomic>
+#include <csignal>
 
 #include "panneau/ControlePanneau.h"
 #include "panneau/InterfacePanneau.h"
@@ -19,6 +20,15 @@ std::atomic<int> demandeMode{-1};
 std::atomic<int> demandeConsigneGB{-1};
 std::atomic<int> demandeConsignePB{-1};
 
+
+volatile std::sig_atomic_t demandeArretUrgence = 0;
+
+
+
+void signalArretUrgence(int)
+{
+    demandeArretUrgence = 1;
+}
 
 
 bool convertirConsigne(const std::string& texte, int& valeur)
@@ -113,6 +123,9 @@ int main(int argc, char* argv[])
 {
     std::cout << "PFI - Panneau RAM" << std::endl;
 
+    std::signal(SIGUSR1, signalArretUrgence);
+
+
     if (argc < 3)
     {
         std::cerr << "Utilisation : "
@@ -189,7 +202,25 @@ int main(int argc, char* argv[])
 
     while (true)
     {
+        
+        if (demandeArretUrgence != 0 && !controle.estArretUrgenceActif())
+        {
+            controle.declencherArretUrgence();
+
+            demandeMode.store(-1);
+
+            std::cerr << "\nARRET LOGICIEL DEMANDE"
+                    << std::endl;
+
+            mqtt.publier(
+                TopicsMqtt::MODE,
+                controle.obtenirMode()
+            );
+        }
+
+
         int commande = demandeMode.exchange(-1);
+
 
         if (commande != -1)
         {
@@ -248,6 +279,25 @@ int main(int argc, char* argv[])
             panneau.deconnecter();
             return 1;
         }
+
+
+        if ((lecture.debordementGrosBassin ||
+            lecture.debordementPetitBassin) &&
+            !controle.estArretUrgenceActif())
+        {
+            controle.declencherArretUrgence();
+
+            demandeMode.store(-1);
+
+            std::cerr << "\nARRET LOGICIEL : DEBORDEMENT"
+                    << std::endl;
+
+            mqtt.publier(
+                TopicsMqtt::MODE,
+                controle.obtenirMode()
+            );
+        }
+
 
         // Publication des niveaux mesures
         int niveauGB = static_cast<int>(
