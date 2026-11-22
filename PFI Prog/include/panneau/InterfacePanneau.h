@@ -12,8 +12,13 @@ public:
 
     bool connecter(const std::string& port);
     bool lireCapteurs(PanelReading& lecture);
-    void deconnecter();
 
+    // Commandes des actionneurs
+    bool commanderValveGB(double ouverture);
+    bool commanderValvePB(double ouverture);
+    bool commanderPompe(bool marche);
+    
+    void deconnecter();
     std::string obtenirErreur() const;
 
 
