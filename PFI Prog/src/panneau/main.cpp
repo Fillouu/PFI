@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <string>
 #include <chrono>
@@ -20,6 +19,10 @@
 std::atomic<int> demandeMode{-1};
 std::atomic<int> demandeConsigneGB{-1};
 std::atomic<int> demandeConsignePB{-1};
+
+std::atomic<int> demandeValveManuelleGB{-1};
+std::atomic<int> demandeValveManuellePB{-1};
+std::atomic<int> demandePompeManuelle{-1};
 
 
 volatile std::sig_atomic_t demandeArretUrgence = 0;
@@ -115,6 +118,51 @@ void traiterCommandeMqtt(
                       << std::endl;
         }
     }
+
+    if (topic == TopicsMqtt::CMD_VALVE_GB)
+    {
+        if (convertirConsigne(message, valeur) && valeur <= 25)
+        {
+            demandeValveManuelleGB.store(valeur);
+            std::cout << "\nCommande valve GB : "
+                      << valeur << " %" << std::endl;
+        }
+        else
+        {
+            std::cerr << "\nCommande manuelle GB invalide"
+                      << std::endl;
+        }
+    }
+    else if (topic == TopicsMqtt::CMD_VALVE_PB)
+    {
+        if (convertirConsigne(message, valeur) && valeur <= 25)
+        {
+            demandeValveManuellePB.store(valeur);
+            std::cout << "\nCommande valve PB : "
+                      << valeur << " %" << std::endl;
+        }
+        else
+        {
+            std::cerr << "\nCommande manuelle PB invalide"
+                      << std::endl;
+        }
+    }
+    else if (topic == TopicsMqtt::CMD_POMPE)
+    {
+        if (message == "on" || message == "1")
+        {
+            demandePompeManuelle.store(1);
+        }
+        else if (message == "off" || message == "0")
+        {
+            demandePompeManuelle.store(0);
+        }
+        else
+        {
+            std::cerr << "\nCommande pompe invalide"
+                      << std::endl;
+        }
+    }
 }
 
 
@@ -199,12 +247,32 @@ int main(int argc, char* argv[])
 
     std::cout << "Abonnements aux consignes demandes."<< std::endl;
 
+    if (!mqtt.abonner(TopicsMqtt::CMD_VALVE_GB) ||
+        !mqtt.abonner(TopicsMqtt::CMD_VALVE_PB) ||
+        !mqtt.abonner(TopicsMqtt::CMD_POMPE))
+    {
+        std::cerr << "Erreur abonnement commandes manuelles"
+                  << std::endl;
+
+        panneau.mettreEnSecuriteSimulateur();
+        mqtt.deconnecter();
+        panneau.deconnecter();
+        return 1;
+    }
+
+    std::cout << "Abonnements manuels demandes."
+              << std::endl;
 
     ControlePanneau controle;
 
     RegulationBassins regulation;
 
     bool sortiesAutoActives = false;
+
+    double valveManuelleGB = 0.0;
+    double valveManuellePB = 0.0;
+    bool pompeManuelle = false;
+    bool commandesManuellesActives = false;
 
     const bool simulation =
         std::string(argv[1]) == "/tmp/ttyRAM";
@@ -263,6 +331,28 @@ int main(int argc, char* argv[])
 
             if (controle.changerMode(nouveauMode))
             {
+                regulation.reinitialiser();
+
+                demandeValveManuelleGB.store(-1);
+                demandeValveManuellePB.store(-1);
+                demandePompeManuelle.store(-1);
+
+                valveManuelleGB = 0.0;
+                valveManuellePB = 0.0;
+                pompeManuelle = false;
+                commandesManuellesActives = false;
+
+                if (!panneau.mettreEnSecuriteSimulateur())
+                {
+                    controle.declencherArretUrgence();
+
+                    std::cerr
+                        << "ERREUR : changement de mode non securise"
+                        << std::endl;
+                }
+
+                sortiesAutoActives = false;
+
                 std::cout << "\nMode actuel : "
                         << controle.obtenirMode()
                         << std::endl;
@@ -346,8 +436,6 @@ int main(int argc, char* argv[])
 
             return 1;
         }
-
-
 
 
         const bool debordement =
@@ -523,6 +611,124 @@ int main(int argc, char* argv[])
         }
 
 
+        const int nouvelleValveGB =
+            demandeValveManuelleGB.exchange(-1);
+
+        const int nouvelleValvePB =
+            demandeValveManuellePB.exchange(-1);
+
+        const int nouvellePompe =
+            demandePompeManuelle.exchange(-1);
+
+        const bool manuelAutorise =
+            simulation &&
+            controle.obtenirMode() == "manuel" &&
+            !controle.estArretUrgenceActif() &&
+            !debordement &&
+            !niveauInvalide;
+
+        if (manuelAutorise)
+        {
+            bool modification = false;
+
+            if (nouvelleValveGB >= 0)
+            {
+                valveManuelleGB = nouvelleValveGB;
+                modification = true;
+            }
+
+            if (nouvelleValvePB >= 0)
+            {
+                valveManuellePB = nouvelleValvePB;
+                modification = true;
+            }
+
+            if (nouvellePompe >= 0)
+            {
+                pompeManuelle = nouvellePompe == 1;
+                modification = true;
+            }
+
+            if (modification || commandesManuellesActives)
+            {
+                const bool demandePompe =
+                    pompeManuelle &&
+                    (valveManuelleGB > 0.0 ||
+                     valveManuellePB > 0.0);
+
+                bool succes = true;
+
+                if (!demandePompe)
+                {
+                    succes = panneau.commanderPompe(false);
+                }
+
+                if (succes)
+                {
+                    succes = panneau.commanderValveGB(
+                        valveManuelleGB);
+                }
+
+                if (succes)
+                {
+                    succes = panneau.commanderValvePB(
+                        valveManuellePB);
+                }
+
+                if (succes && demandePompe)
+                {
+                    succes = panneau.commanderPompe(true);
+                }
+
+                if (!succes)
+                {
+                    controle.declencherArretUrgence();
+
+                    std::cerr
+                        << "ARRET : erreur commande manuelle"
+                        << std::endl;
+
+                    if (!panneau.mettreEnSecuriteSimulateur())
+                    {
+                        std::cerr
+                            << "ERREUR CRITIQUE : "
+                            << "mise en securite non confirmee"
+                            << std::endl;
+                    }
+
+                    commandesManuellesActives = false;
+                    pompeManuelle = false;
+                }
+                else
+                {
+                    commandesManuellesActives = true;
+
+                    std::cout
+                        << "MANUEL GB : " << valveManuelleGB
+                        << " % | PB : " << valveManuellePB
+                        << " % | Pompe : "
+                        << (demandePompe ? "ON" : "OFF")
+                        << std::endl;
+                }
+            }
+        }
+        else if (commandesManuellesActives)
+        {
+            if (!panneau.mettreEnSecuriteSimulateur())
+            {
+                std::cerr
+                    << "ERREUR CRITIQUE : "
+                    << "arret manuel non confirme"
+                    << std::endl;
+
+                controle.declencherArretUrgence();
+            }
+
+            commandesManuellesActives = false;
+            pompeManuelle = false;
+            valveManuelleGB = 0.0;
+            valveManuellePB = 0.0;
+        }
 
         // Publication des niveaux mesures
         int niveauGB = static_cast<int>(
