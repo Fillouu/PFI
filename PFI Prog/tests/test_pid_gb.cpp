@@ -53,7 +53,7 @@ int main()
 
     const double consigne = 10.0;
 
-    Pid pidGB(4.0, 0.03, 0.0);
+    Pid pidGB(5.0, 0.9, 2.0);
 
     if (!pidGB.definirLimites(0.0, 50.0))
     {
