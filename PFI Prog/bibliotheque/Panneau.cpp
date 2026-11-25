@@ -11,7 +11,7 @@ static const int DELAI_REPONSE_MAX_MS = 200;
 
 // Le sens de chaque valve
 // true = fermée à 4 mA et ouverte à 20 mA; false = fermée à 20mA et ouverte à 4mA.
-static const bool OUVRE_AU_COURANT_FORT[4] = {false, true, true, true};
+static const bool OUVRE_AU_COURANT_FORT[4] = {false, true, false, true};
 
 static const double RELECTURE_4MA[4] = {4.0, 4.0, 4.0, 4.0};
 static const double RELECTURE_20MA[4] = {20.0, 20.0, 20.0, 20.0};
@@ -75,10 +75,22 @@ double Panel::valveFromReadback(Valve valve, double courantRelu) const {
 
     double ecart = RELECTURE_20MA[v] - RELECTURE_4MA[v];
     double courantEnvoye = 4.0;
+
     if (ecart != 0.0) {
         courantEnvoye = 4.0 + 16.0 * (courantRelu - RELECTURE_4MA[v]) / ecart;
     }
+
     double fraction = borner((courantEnvoye - 4.0) / 16.0, 0.0, 1.0);
+
+    // Correction de la relecture des valves GB et PB
+    if (valve == Valve::LargeTank) {
+        return 100.0 * (1.0 - fraction);
+    }
+
+    if (valve == Valve::SmallTank) {
+        return 100.0 * fraction;
+    }
+
     if (OUVRE_AU_COURANT_FORT[v]) {
         return 100.0 * fraction;
     }
