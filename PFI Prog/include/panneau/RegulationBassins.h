@@ -17,7 +17,11 @@ public:
 
     CommandesBassins calculer(double consigneGB, double consignePB,
                              double niveauGB, double niveauPB,
-                             double dt, bool autorise);
+                             double dt, bool autorise,
+                             int purgeGB = -1, int purgePB = -1);
+
+    bool reglerGainsGB(double kp, double ki, double kd);
+    bool reglerGainsPB(double kp, double ki, double kd);
 
     void reinitialiser();
 
