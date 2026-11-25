@@ -1,8 +1,8 @@
+// DEBUT DU FICHIER CONTENANT DES MODIFICATIONS AVEC L'AIDE D'UNE IA
 
 #include "commun/ClientMqtt.h"
 
 #include <iostream>
-
 
 ClientMqtt::ClientMqtt()
     : client(nullptr), connecte(false)
@@ -14,6 +14,12 @@ ClientMqtt::ClientMqtt()
     if (client != nullptr)
     {
         mosquitto_user_data_set(client, this);
+
+        mosquitto_disconnect_callback_set(
+            client,
+            ClientMqtt::perteConnexion
+        );
+
         mosquitto_message_callback_set(
             client,
             ClientMqtt::receptionMessage
@@ -76,14 +82,15 @@ bool ClientMqtt::connecter(const std::string& adresse, int port)
     connecte = true;
 
     std::cout << "Connexion MQTT demarree." << std::endl;
+
     return true;
 }
 
-
 bool ClientMqtt::publier(const std::string& topic,
-                         const std::string& message)
+                         const std::string& message,
+                         bool retained)
 {
-    if (!connecte || client == nullptr)
+    if (!estConnecte() || client == nullptr)
     {
         return false;
     }
@@ -94,13 +101,12 @@ bool ClientMqtt::publier(const std::string& topic,
         topic.c_str(),
         static_cast<int>(message.size()),
         message.c_str(),
-        0,
-        false
+        retained ? 1 : 0,
+        retained
     );
 
     return resultat == MOSQ_ERR_SUCCESS;
 }
-
 
 void ClientMqtt::deconnecter()
 {
@@ -108,16 +114,15 @@ void ClientMqtt::deconnecter()
     {
         mosquitto_disconnect(client);
         mosquitto_loop_stop(client, false);
+
         connecte = false;
     }
 }
 
-
 bool ClientMqtt::estConnecte() const
 {
-    return connecte;
+    return connecte && !liaisonPerdue.load();
 }
-
 
 bool ClientMqtt::abonner(const std::string& topic)
 {
@@ -172,3 +177,17 @@ void ClientMqtt::receptionMessage(
         mqtt->gestionnaireMessage(topic, contenu);
     }
 }
+
+void ClientMqtt::perteConnexion(
+    struct mosquitto*,
+    void* contexte,
+    int code)
+{
+    if (code != 0 && contexte)
+    {
+        static_cast<ClientMqtt*>(contexte)
+            ->liaisonPerdue.store(true);
+    }
+}
+
+// FIN DU FICHIER CONTENANT DES MODIFICATIONS AVEC L'AIDE D'UNE IA
