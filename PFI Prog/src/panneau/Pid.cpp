@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 
-
 Pid::Pid(double kp, double ki, double kd)
     : kp_(kp), ki_(ki), kd_(kd)
 {
@@ -25,7 +24,7 @@ bool Pid::definirLimites(double minimum, double maximum)
 void Pid::reinitialiser()
 {
     integrale_ = 0.0;
-    erreurPrecedente_ = 0.0;
+    mesurePrecedente_ = 0.0;
     premierCalcul_ = true;
 }
 
@@ -43,9 +42,10 @@ double Pid::calculer(double consigne, double mesure, double dt)
     const double erreur = consigne - mesure;
     const double proportionnel = kp_ * erreur;
 
+    // Derivee sur la mesure : pas de pic lorsque la consigne change.
     const double derive = premierCalcul_
         ? 0.0
-        : kd_ * (erreur - erreurPrecedente_) / dt;
+        : -kd_ * (mesure - mesurePrecedente_) / dt;
 
     const double integraleProposee = integrale_ + erreur * dt;
 
@@ -60,7 +60,7 @@ double Pid::calculer(double consigne, double mesure, double dt)
         integrale_ = integraleProposee;
     }
 
-    erreurPrecedente_ = erreur;
+    mesurePrecedente_ = mesure;
     premierCalcul_ = false;
 
     const double sortie =
@@ -69,6 +69,30 @@ double Pid::calculer(double consigne, double mesure, double dt)
     if (!std::isfinite(sortie))
         return sortieMin_;
 
-    return std::clamp(sortie, sortieMin_, sortieMax_);
+    if (sortie < sortieMin_)
+    {
+        return sortieMin_;
+    }
+
+    if (sortie > sortieMax_)
+    {
+        return sortieMax_;
+    }
+
+    return sortie;
 }
 
+// DEBUT DU CODE AJOUTE AVEC L'AIDE D'UNE IA
+bool Pid::definirGains(double kp, double ki, double kd)
+{
+    if (!std::isfinite(kp) || !std::isfinite(ki) || !std::isfinite(kd) ||
+        kp < 0.0 || ki < 0.0 || kd < 0.0 ||
+        kp > 100.0 || ki > 100.0 || kd > 100.0)
+        return false;
+
+    kp_ = kp;
+    ki_ = ki;
+    kd_ = kd;
+    // Comme au Labo 5, conserver l'integrale quand les gains changent.
+    return true;
+}

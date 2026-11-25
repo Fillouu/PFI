@@ -9,6 +9,7 @@ public:
     double calculer(double consigne, double mesure, double dt);
     void reinitialiser();
     bool definirLimites(double minimum, double maximum);
+    bool definirGains(double kp, double ki, double kd);
 
 private:
     double kp_;
@@ -16,7 +17,7 @@ private:
     double kd_;
 
     double integrale_ = 0.0;
-    double erreurPrecedente_ = 0.0;
+    double mesurePrecedente_ = 0.0;
     bool premierCalcul_ = true;
 
     double sortieMin_ = 0.0;
