@@ -134,6 +134,7 @@ target_include_directories(regulation_bassins PUBLIC
 
 add_executable(panneau_ram
     src/panneau/main.cpp
+    src/panneau/GestionAlarmes.cpp
 )
 
 target_link_libraries(panneau_ram PRIVATE
@@ -186,6 +187,7 @@ if(BUILD_TESTING)
 
     add_executable(test_regulation_purge
         tests/test_regulation_purge.cpp
+        src/panneau/GestionAlarmes.cpp
     )
 
     target_link_libraries(test_regulation_purge PRIVATE

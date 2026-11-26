@@ -1,5 +1,6 @@
 
 #include "panneau/RegulationBassins.h"
+#include "panneau/GestionAlarmes.h"
 
 #include <cassert>
 #include <cmath>
@@ -91,6 +92,27 @@ int main()
     assert(regulation.reglerGainsGB(3.0, 0.02, 0.0));
     assert(regulation.reglerGainsPB(1.5, 0.02, 0.0));
     assert(!regulation.reglerGainsGB(-2.0, 0.01, 0.0));
+
+    // DEBUT DU CODE AJOUTE AVEC L'AIDE D'UNE IA
+    RegulationBassins sansPurge, avecPurge;
+    const auto a = sansPurge.calculer(10, 10, 9.8, 10.1, 1.0, true);
+    const auto b = avecPurge.calculer(10, 10, 9.8, 10.1, 1.0, true, 0, 100);
+    assert(a.pompe == b.pompe && a.valveGB == b.valveGB && a.valvePB == b.valvePB);
+
+    GestionAlarme alarme;
+    const auto t = std::chrono::steady_clock::time_point{};
+    using S = std::chrono::seconds;
+    assert(!alarme.actualiser(true, false, 3, 10, t));
+    assert(!alarme.actualiser(true, false, 3, 10, t + S(2)));
+    assert(alarme.actualiser(true, false, 3, 10, t + S(3)));
+    assert(alarme.estEmise());
+    assert(!alarme.actualiser(true, true, 3, 10, t + S(4)));
+    assert(!alarme.estEmise());
+    assert(!alarme.actualiser(true, false, 3, 10, t + S(13)));
+    assert(alarme.actualiser(true, false, 3, 10, t + S(14)));
+    assert(!alarme.actualiser(false, true, 3, 10, t + S(15)));
+    assert(!alarme.actualiser(false, false, 3, 10, t + S(30)));
+    // FIN DU CODE AJOUTE AVEC L'AIDE D'UNE IA
 
     std::cout << "Tests niveaux/purges reussis\n";
 
