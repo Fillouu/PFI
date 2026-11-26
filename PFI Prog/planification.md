@@ -11,25 +11,26 @@
 
 | Livrable | Date prévue | État | Date réelle | Note |
 |---|---|---|---|---|
+
 | Déposer le fichier `planification.md` dans le dépôt GitHub. | Jeudi 12 novembre | fait | 12 novembre 2026 | Premier livrable obligatoire. |
 
-| Organiser les dossiers et vérifier la compilation C++ des programmes panneau RAM et Power Meter. | Jeudi 12 novembre | en cours | — | Structure et compilation du panneau RAM avancées. La compilation d'un programme Power Meter complet n'est pas encore démontrée. |
+| Organiser les dossiers et vérifier la compilation C++ des programmes panneau RAM et Power Meter. | Jeudi 12 novembre | en cours | — | Structure du panneau RAM terminée. Compilation WSL et ARM réussie et 4 tests unitaires réussis avant le dernier ajout MQTT. Power Meter à compléter. |
 
-| Faire communiquer le Raspberry Pi avec le panneau RAM et lire les niveaux des deux bassins. | Jeudi 19 novembre | fait | 19 novembre 2026 | Communication et lecture des niveaux vérifiées avec le simulateur RAM. Validation sur le panneau physique à conserver pour le livrable du 26 novembre. |
+| Faire communiquer le Raspberry Pi avec le panneau RAM et lire les niveaux des deux bassins. | Jeudi 19 novembre | fait | 19 novembre 2026 | Communication validée avec le simulateur RAM le 19 novembre et avec le panneau réel le 25 novembre. |
 
-| Mettre en place la communication MQTT du panneau RAM : publier les états et recevoir les commandes. | Jeudi 19 novembre | en cours | — | Publication des niveaux et de la température et réception de certaines commandes testées. Il reste à intégrer et vérifier toutes les commandes et tous les états nécessaires au fonctionnement du panneau. |
+| Mettre en place la communication MQTT du panneau RAM : publier les états et recevoir les commandes. | Jeudi 19 novembre | en cours | — | Commandes de mode, valves et consignes testées. Publication des niveaux, température, positions des valves, pompe et alarmes fonctionnelle. Optimisation des publications réalisée. Synchronisation des consignes ajoutée, mais non testée. Finalisation visée le 3 décembre. |
 
-| Établir une première communication série avec le Power Meter. | Jeudi 19 novembre | à faire  | — | Appareil non disponible et protocole série absent de l'énoncé. Nouvelle date visée : 3 décembre 2026, sous réserve de l'accès au matériel et au protocole; signaler le blocage au professeur. Une simulation MQTT ne remplace pas une lecture série réelle. |
+| Établir une première communication série avec le Power Meter. | Jeudi 19 novembre | en retard | — | Appareil non disponible et protocole série absent de l'énoncé. Nouvelle date visée : 3 décembre 2026, sous réserve de l'accès au matériel et au protocole. |
 
-| Programmer la régulation PID du niveau des deux bassins du panneau RAM. | Jeudi 26 novembre | en cours | — | Réaliser et tester les deux calculs PID, puis les intégrer aux commandes du panneau avec sorties bornées et comportement sécuritaire. |
+| Programmer la régulation PID du niveau des deux bassins du panneau RAM. | Jeudi 26 novembre | fait | 25 novembre 2026 | PID GB et PB réglés et testés sur le panneau réel. Gains GB : 5 / 0,7 / 2. Gains PB : 2 / 0,18 / 1. Sorties bornées entre 0 et 100 %. Régulation simultanée fonctionnelle. |
 
-| Détecter les débordements et dépassements de niveau, transmettre les alarmes et tester les sécurités du panneau RAM. | Jeudi 26 novembre | à faire | — | Livrable obligatoire : alarmes et systèmes de secours fonctionnels et démontrables, y compris en cas de panne de communication. |
+| Détecter les débordements et dépassements de niveau, transmettre les alarmes et tester les sécurités du panneau RAM. | Jeudi 26 novembre | en cours | — | Alarmes de niveau, génération après environ 3 s, répétition après ACK de 10 s, débordements GB/PB, réarmement, arrêt logiciel et perte MQTT validés sur le panneau réel. Perte RS-232 programmée, mais non testée physiquement en fonctionnement. |
 
-| Faire fonctionner les modes MANUEL et AUTOMATIQUE et le changement de consigne de niveau. | Jeudi 26 novembre | en cours | — | Réception et mémorisation logicielle commencées. Reste à commander réellement la pompe et les valves selon le mode et à synchroniser les états locaux et MQTT. |
+| Faire fonctionner les modes MANUEL et AUTOMATIQUE et le changement de consigne de niveau. | Jeudi 26 novembre | fait | 25 novembre 2026 | Commandes manuelles et automatiques fonctionnelles. Changements de consignes et régulation simultanée validés sur le panneau réel. Pompe maintenue active en AUTO lorsqu'elle est autorisée. |
 
-| Vérifier le fonctionnement du PID de niveau lorsqu'une purge est ouverte. | Jeudi 26 novembre | à faire | — | Démontrer la réaction de la régulation lorsqu'une purge est ouverte. Ne comprend pas la programmation de l'unité distincte des valves de purge (section 7). |
+| Vérifier le fonctionnement du PID de niveau lorsqu'une purge est ouverte. | Jeudi 26 novembre | en cours | — | Régulation indépendante des mesures des valves de purge. Essai spécifique avec une purge ouverte restant à documenter. Ne comprend pas la programmation de l'unité distincte des valves de purge (section 7). |
 
-| Documenter les premiers essais de niveau et les réglages du PID. | Jeudi 26 novembre | à faire | — | Décrire la méthode de réglage, les gains essayés, les résultats et conserver une courbe pour chaque choix de gains. |
+| Documenter les premiers essais de niveau et les réglages du PID. | Jeudi 26 novembre | en cours | — | Gains définitifs, observations, résultats des essais, courbes expérimentales et théoriques documentés. Les courbes expérimentales de chaque combinaison intermédiaire de gains ne sont pas disponibles. |
 
 | Réguler la température du petit bassin en maintenant le contrôle de niveau. | Jeudi 3 décembre | à faire | — | Tester une consigne initiale, puis son changement, pendant que le niveau demeure régulé; documenter les réglages. |
 
@@ -50,6 +51,88 @@
 | Faire les essais de démonstration et de pannes des deux unités. | Jeudi 10 décembre | à faire | — | Vérifier les scénarios applicables : perte de lien série, appareil muet, capteur défaillant, débordement, broker arrêté, commande invalide, arrêt et relance. |
 
 | Vérifier les fichiers, compiler les deux programmes et pousser le travail final sur GitHub. | Vendredi 11 décembre | à faire | — | Dépôt final et documents remis avant 23 h. |
+
+
+## Suivi du 26 novembre 2026
+
+### Travaux réalisés
+
+- Communication série avec le panneau RAM réel.
+
+- Validation des lectures de niveaux, de température et des positions des valves.
+
+- Validation des modes MANUEL et AUTOMATIQUE.
+
+- Réglage et validation des deux PID sur le panneau réel.
+
+- Validation de la régulation simultanée des bassins.
+
+- Validation des changements de consigne.
+
+- Optimisation des publications MQTT.
+
+- Ajout de la publication des consignes de niveau.
+
+- Validation des alarmes de niveau.
+
+- Validation de la temporisation de génération de 3 secondes, approximativement.
+
+- Validation de la temporisation de répétition de 10 secondes après ACK.
+
+- Validation des alarmes de débordement des deux bassins.
+
+- Validation du réarmement après débordement.
+
+- Validation de l'arrêt logiciel et du verrouillage des commandes.
+
+- Validation du redémarrage sécuritaire.
+
+- Validation de la détection de perte MQTT.
+
+- Séparation de GestionAlarmes.h et GestionAlarmes.cpp.
+
+- Compilation WSL et ARM avant le dernier ajout MQTT.
+
+- Réussite des quatre tests unitaires avant le dernier ajout MQTT.
+
+- Mise à jour de la documentation technique et de maintenance.
+
+- Création des courbes expérimentales et théoriques.
+
+
+### Gains PID retenus
+
+| Bassin | Kp | Ki | Kd |
+|---|---|---|---|
+| GB | 5,0 | 0,70 | 2,0 |
+| PB | 2,0 | 0,18 | 1,0 |
+
+
+### Travaux restant à valider
+
+- Perte de communication RS-232 pendant le fonctionnement.
+
+- Synchronisation MQTT des nouvelles publications de consignes.
+
+- Essai spécifique du PID avec une purge ouverte.
+
+- Courbes expérimentales des différents réglages intermédiaires du PID.
+
+- Régulation de température du petit bassin.
+
+- Commandes des valves d'eau chaude et d'eau froide.
+
+- Communication et programmation du Power Meter.
+
+
+### Documentation
+
+Les résultats des essais sont disponibles dans le dossier `PFI Prog/docs/`.
+
+Les courbes expérimentales et théoriques sont conservées dans le dossier `PFI Prog/docs/courbes/`.
+
+Les courbes théoriques représentent le comportement attendu et sont distinctes des mesures réelles.
+
 
 ## Priorités de réalisation
 
