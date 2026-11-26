@@ -1,4 +1,3 @@
-
 # PFI Prog — panneau RAM et Power Meter
 
 Programme du panneau RAM en C++17, basé sur la bibliothèque `Panneau` fournie en laboratoire. Cette version travaille sur les **niveaux d'eau GB/PB et les commandes locales/MQTT**. Le Power Meter et la régulation de température ne sont pas terminés par cette modification.
@@ -43,26 +42,36 @@ pompe on
 consigne gb 50
 consigne pb 75
 auto
-gains gb 4 0.03 0
-gains pb 2 0.02 0
+gains gb 5 0.7 2
+gains pb 2 0.18 1
 etat
 aide
 arret
 quitter
 ```
 
-En MANUEL, la pompe démarre automatiquement quand au moins une valve de remplissage est ouverte, sauf si une commande explicite `pompe off` l'interdit. Fermer toutes les valves arrête la pompe. `pompe on` la réautorise; il ne fait pas tourner une pompe face à deux valves de remplissage fermées. En AUTO, le PID commande les deux valves indépendamment. La pompe est partagée. Un nouveau mode commence par une remise à zéro des sorties.
+En MANUEL, les valves sont commandées directement. La pompe doit être autorisée avec `pompe on` et au moins une valve doit être ouverte. En AUTO, les deux PID fonctionnent indépendamment et la pompe reste active tant qu'elle est autorisée et qu'aucun défaut de sécurité ne survient. Ce fonctionnement exige un circuit hydraulique adapté. Une consigne de 0 % ferme la valve correspondante. Les mesures des valves de purge ne sont pas nécessaires à la régulation.
 
 ## MQTT
 
-Les topics `RAM/panneau/cmd/...` sont ceux de l'annexe I. Les commandes locales et les commandes reçues par MQTT suivent le même chemin logique. Le programme publie le mode, les niveaux, la température lue, les positions de valves lues et la commande de pompe. Les positions des **valves de purge**, distinctes, sont consommées facultativement sur `RAM/valves/etats/Ouverture_GB` et `RAM/valves/etats/Ouverture_PB`.
+Broker utilisé au laboratoire : `172.17.15.206:1883`. Les commandes locales et MQTT utilisent la même logique. Les topics sont sensibles à la casse.
 
-## Limites connues
+| Préfixe | Topics |
+|---|---|
+| `RAM/PANNEAU/CMD/` | `MODE`, `VALVEGB`, `VALVEPB`, `CONSNIVGB`, `CONSNIVPB`, `POMPE` |
+| `RAM/PANNEAU/ETATS/` | `MODE`, `NIVGB`, `NIVPB`, `TMPPB`, `VALVEGB`, `VALVEPB`, `POMPE` |
+| `RAM/PANNEAU/ETATS/` | `CONSNIVGB`, `CONSNIVPB` (ajout de synchronisation après les essais, non recompilé ni testé) |
+| `RAM/ALARMES/CMD/` | `NIVLHGB`, `NIVLHPB`, `TGNIVGB`, `TGNIVPB`, `TRNIVGB`, `TRNIVPB` |
+| `RAM/ALARMES/ETATS/` | `ALR_GB_NIV_MAX`, `ALR_PB_NIV_MAX`, `ALR_GB_OVF`, `ALR_PB_OVF` |
 
-- Tests unitaires et analyse syntaxique C++ vérifiés localement. **Aucun essai du simulateur RAM ni sur panneau physique, et aucune compilation liée à une vraie libmosquitto dans l'environnement de préparation.**
-- La régulation PID doit encore être réglée sur le système réel, avec courbes. Les ouvertures maximales actuelles sont 50 % GB / 25 % PB et le seuil de sécurité de niveau est 95 %.
-- Les alarmes temporisées, leurs topics `RAM/alarmes/etats/...` avec retenue MQTT, la protection complète contre la panne du broker et la régulation de température ne sont pas achevées.
-- La fonctionnalité de la section 6 (Power Meter) n'est pas achevée et n'est pas modifiée ici.
-- Les documents `docs/essais_panneau.md`, `docs/reglages_pid.md`, `docs/maintenance_panneau.md` contiennent les procédures et les essais qui restent à exécuter et à documenter.
+Les états sont publiés sur changement et conservés par le broker (retained). Les dernières valeurs peuvent être périmées après une déconnexion. Les alarmes sont publiées avec `ON`; la reconnaissance `ACK` entraîne l'effacement du message retained. Les alarmes de niveau utilisent par défaut TG = 3 s et TR = 10 s après reconnaissance. Elles ne coupent pas les actionneurs. Un débordement déclenche la mise en sécurité et nécessite un réarmement après disparition du défaut.
+
+## Validation et limites connues
+
+- Compilation WSL et ARM et quatre tests unitaires réussis selon les essais du 25 novembre, avant le dernier ajout MQTT des consignes.
+- Régulation GB/PB, alarmes de niveau, débordements, réarmement et perte MQTT testés sur panneau réel. Voir `docs/resultats_essais_26nov.md` pour les preuves et limites.
+- Perte série en fonctionnement non testée physiquement; la fermeture des actionneurs ne peut pas être garantie si la liaison est coupée.
+- La régulation de température, les commandes des valves d'eau chaude/froide et le Power Meter restent à compléter.
+- Les documents `docs/essais_panneau.md`, `docs/reglages_pid.md` et `docs/maintenance_panneau.md` décrivent les essais, réglages et procédures.
 
 Les sections ajoutées avec assistance IA sont identifiées dans les fichiers et dans `docs/trace_ia.md`.
