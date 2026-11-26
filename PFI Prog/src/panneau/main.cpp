@@ -18,6 +18,7 @@
 #include <mutex>
 #include <streambuf>
 #include <deque>
+#include <map>
 
 #include "panneau/ControlePanneau.h"
 #include "panneau/GestionAlarmes.h"
@@ -251,7 +252,7 @@ void afficherAideConsole()
               << "  pompe on | pompe off             (manuel et auto)\n"
               << "  alarme gb 80 | alarme pb 80      (seuil 0-100 %, defaut 100)\n"
               << "  consigne gb 50 | consigne pb 75  (auto, 0-100 %)\n"
-              << "  gains gb 4 0.03 0 | gains pb 2 0.02 0\n"
+              << "  gains gb 5 0.7 2 | gains pb 2 0.18 1\n"
               << "  etat | rearme | aide | arret | quitter\n\n";
 }
 
@@ -432,6 +433,11 @@ public:
 
     ~ConsoleInteractive()
     {
+        restaurer();
+    }
+
+    void restaurer()
+    {
         if (restaure_)
         {
             finClavier_.store(true);
@@ -440,6 +446,8 @@ public:
             std::cerr.rdbuf(ancienCerr_);
             tcsetattr(STDIN_FILENO, TCSANOW, &ancien_);
             envoyer("\033[?25h\033[?1049l\033[0m");
+            restaure_ = false;
+            actif_ = false;
         }
     }
 
@@ -506,7 +514,8 @@ public:
         dessinerLigne(10, temperature.str());
         dessinerLigne(11, "---------------------------------------------------");
         dessinerLigne(12, std::string("Securite : ") +
-                          (alarmeVerrouillee ? "ALARME - sorties fermees" : "OK"));
+                          (controle.estArretUrgenceActif() ? "ARRET LOGICIEL / DEFAUT ACTIF" :
+                           alarmeVerrouillee ? "DEFAUT - commandes bloquees" : "OK"));
         dessinerLigne(13, std::string("Bassin en alarme : ") +
                           (alarmeGB ? "GB " : "") + (alarmePB ? "PB" : ""));
         dessinerLigne(14, "---------------------------------------------------");
@@ -719,9 +728,21 @@ int main(int argc, char* argv[])
     double derniereCommandePidPB = 0.0;
 
 
+    // DEBUT DU CODE AJOUTE AVEC L'AIDE D'UNE IA
+    // Memoriser uniquement les publications acceptees par le client MQTT.
+    std::map<std::string, std::string> derniersEtats;
+    auto publierEtat = [&](const std::string& topic, const std::string& valeur) {
+        const auto it = derniersEtats.find(topic);
+        if (it != derniersEtats.end() && it->second == valeur) return true;
+        if (!mqtt.publier(topic, valeur, true)) return false;
+        derniersEtats[topic] = valeur;
+        return true;
+    };
+    bool perteMqtt = false;
+    // FIN DU CODE AJOUTE AVEC L'AIDE D'UNE IA
+
     // Publier le mode initial
-    if (!mqtt.publier(
-            TopicsMqtt::MODE,
+    if (!publierEtat(TopicsMqtt::MODE,
             controle.obtenirMode()))
     {
         std::cerr << "Erreur publication mode initial"
@@ -741,7 +762,7 @@ int main(int argc, char* argv[])
     while (!finProgrammeDemandee)
     {
         if (!mqtt.estConnecte()) {
-            std::cerr << "Perte MQTT : arret securitaire, relancer le programme.\n";
+            perteMqtt = true;
             break;
         }
         console.lire(regulation);
@@ -769,7 +790,7 @@ int main(int argc, char* argv[])
                         << std::endl;
             }
 
-            if (!mqtt.publier(TopicsMqtt::MODE,
+            if (!publierEtat(TopicsMqtt::MODE,
                             controle.obtenirMode()))
             {
                 std::cerr << "Erreur publication mode MQTT"
@@ -829,8 +850,7 @@ int main(int argc, char* argv[])
                         << controle.obtenirMode()
                         << std::endl;
 
-                if (!mqtt.publier(
-                        TopicsMqtt::MODE,
+                if (!publierEtat(TopicsMqtt::MODE,
                         controle.obtenirMode()))
                 {
                     std::cerr << "Erreur publication du mode"
@@ -925,7 +945,10 @@ int main(int argc, char* argv[])
 
             mqtt.deconnecter();
             panneau.deconnecter();
-
+            console.restaurer();
+            std::cerr << "PERTE COMMUNICATION SERIE : " << erreurSerie << '\n';
+            std::cerr << (securiteOK ? "Commandes de securite acceptees.\n" :
+                "Mise en securite NON CONFIRMEE : verifier physiquement le panneau.\n");
             return 1;
         }
 
@@ -1002,7 +1025,7 @@ int main(int argc, char* argv[])
                 controle.changerMode("manuel");
                 pompeManuelle = false;
                 pompeAutoriseeAuto = false;
-                mqtt.publier(TopicsMqtt::MODE, controle.obtenirMode());
+                publierEtat(TopicsMqtt::MODE, controle.obtenirMode());
                 std::cout << "Alarme rearmee : MANUEL, pompe OFF, valves fermees.\n";
             }
 
@@ -1110,7 +1133,7 @@ int main(int argc, char* argv[])
 
                 sortiesAutoActives = false;
                 pompeAppliquee = false;
-                mqtt.publier(TopicsMqtt::MODE, controle.obtenirMode());
+                publierEtat(TopicsMqtt::MODE, controle.obtenirMode());
             }
             else
             {
@@ -1126,6 +1149,8 @@ int main(int argc, char* argv[])
         else
         {
             regulation.reinitialiser();
+            derniereCommandePidGB = 0.0;
+            derniereCommandePidPB = 0.0;
 
             if (sortiesAutoActives ||
                 controle.estArretUrgenceActif())
@@ -1224,7 +1249,7 @@ int main(int argc, char* argv[])
                     commandesManuellesActives = false;
                     pompeAppliquee = false;
                     pompeManuelle = false;
-                    mqtt.publier(TopicsMqtt::MODE, controle.obtenirMode());
+                    publierEtat(TopicsMqtt::MODE, controle.obtenirMode());
                 }
                 else
                 {
@@ -1262,16 +1287,27 @@ int main(int argc, char* argv[])
             valveManuellePB = 0.0;
         }
 
-        if (!mqtt.publier(TopicsMqtt::VALVE_GB,
-                std::to_string(limiter(
-                    static_cast<int>(std::lround(lecture.ouvertureValve[1])), 0, 100))) ||
-            !mqtt.publier(TopicsMqtt::VALVE_PB,
-                std::to_string(limiter(
-                    static_cast<int>(std::lround(lecture.ouvertureValve[2])), 0, 100))) ||
-            !mqtt.publier(TopicsMqtt::POMPE,
-                pompeAppliquee ? "on" : "off"))
+        if (!publierEtat(TopicsMqtt::VALVE_GB,
+            std::to_string(limiter( static_cast<int>(std::lround(lecture.ouvertureValve[1])), 0, 100))) || !publierEtat(TopicsMqtt::VALVE_PB,
+            std::to_string(limiter(static_cast<int>(std::lround(lecture.ouvertureValve[2])), 0, 100))) || !publierEtat(TopicsMqtt::POMPE, pompeAppliquee ? "on" : "off"))
+        {
             std::cerr << "Publication des actionneurs impossible.\n";
+        }
 
+
+        // Publication des consignes de niveau
+        if (!publierEtat(TopicsMqtt::CONS_NIV_GB,
+                std::to_string(controle.obtenirConsigneGB())))
+        {
+            std::cerr << "Erreur publication consigne GB" << std::endl;
+        }
+
+        if (!publierEtat(TopicsMqtt::CONS_NIV_PB,
+                std::to_string(controle.obtenirConsignePB())))
+        {
+            std::cerr << "Erreur publication consigne PB" << std::endl;
+        }
+        
         // Publication des niveaux mesures
         int niveauGB = static_cast<int>(
             std::lround(lecture.niveauGrosBassin)
@@ -1285,12 +1321,12 @@ int main(int argc, char* argv[])
         niveauGB = limiter(niveauGB, 0, 100);
         niveauPB = limiter(niveauPB, 0, 100);
 
-        if (!mqtt.publier(TopicsMqtt::NIV_GB,std::to_string(niveauGB)))
+        if (!publierEtat(TopicsMqtt::NIV_GB,std::to_string(niveauGB)))
         {
             std::cerr << "Erreur publication niveau GB" << std::endl;
         }
 
-        if (!mqtt.publier(TopicsMqtt::NIV_PB,std::to_string(niveauPB)))
+        if (!publierEtat(TopicsMqtt::NIV_PB,std::to_string(niveauPB)))
         {
             std::cerr << "Erreur publication niveau PB" << std::endl;
         }
@@ -1298,7 +1334,7 @@ int main(int argc, char* argv[])
         // Publication de la temperature du petit bassin
         int temperaturePB = static_cast<int>(std::lround(lecture.temperaturePetitBassin));
 
-        if (!mqtt.publier(TopicsMqtt::TMP_PB,std::to_string(temperaturePB)))
+        if (!publierEtat(TopicsMqtt::TMP_PB,std::to_string(temperaturePB)))
         {
             std::cerr << "Erreur publication temperature PB" << std::endl;
         }
@@ -1326,6 +1362,11 @@ int main(int argc, char* argv[])
     const bool securiteOK =
         panneau.mettreEnSecuriteSimulateur();
 
+    // Ne publier une fermeture que si les commandes ont ete acceptees.
+    // Les ouvertures sont des mesures : elles seront relues au prochain demarrage.
+    if (securiteOK && mqtt.estConnecte())
+        publierEtat(TopicsMqtt::POMPE, "off");
+
     if (securiteOK)
     {
         std::cout << "Commandes de mise en securite acceptees"
@@ -1339,9 +1380,17 @@ int main(int argc, char* argv[])
                   << std::endl;
     }
 
+    const std::string erreurFermeture = securiteOK ? "" : panneau.obtenirErreur();
     mqtt.deconnecter();
     panneau.deconnecter();
 
+    console.restaurer();
+    if (perteMqtt)
+        std::cerr << "Perte MQTT : arret securitaire, relancer le programme.\n";
+    if (securiteOK)
+        std::cout << "Commandes de mise en securite acceptees.\n";
+    else
+        std::cerr << "MISE EN SECURITE NON CONFIRMEE : " << erreurFermeture << " ; verifier physiquement le panneau.\n";
     std::cout << "Fermeture du programme Panneau RAM"
               << std::endl;
 

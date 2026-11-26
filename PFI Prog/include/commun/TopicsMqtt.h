@@ -14,6 +14,13 @@ namespace TopicsMqtt
     constexpr const char* TMP_PB =
         "RAM/PANNEAU/ETATS/TMPPB";
 
+    // Etats des consignes de niveau
+    constexpr const char* CONS_NIV_GB =
+        "RAM/PANNEAU/ETATS/CONSNIVGB";
+
+    constexpr const char* CONS_NIV_PB =
+        "RAM/PANNEAU/ETATS/CONSNIVPB";
+
     // Etat des valves
     constexpr const char* VALVE_GB =
         "RAM/PANNEAU/ETATS/VALVEGB";
