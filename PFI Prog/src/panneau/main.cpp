@@ -146,7 +146,7 @@ void traiterCommandeMqtt(
     if (topic == "RAM/ALARMES/CMD/NIVLHGB" ||
         topic == "RAM/ALARMES/CMD/NIVLHPB")
     {
-        if (convertirConsigne(message, valeur) && valeur > 0)
+        if (convertirConsigne(message, valeur))
         {
             if (topic == "RAM/ALARMES/CMD/NIVLHGB")
                 demandeSeuilAlarmeGB.store(valeur);
@@ -249,7 +249,7 @@ void afficherAideConsole()
               << "  manuel | auto  (ou mode manuel | mode auto)\n"
               << "  valve gb 50 | valve pb 0         (manuel, 0-100 %)\n"
               << "  pompe on | pompe off             (manuel et auto)\n"
-              << "  alarme gb 80 | alarme pb 80      (seuil 1-100 %, defaut 100)\n"
+              << "  alarme gb 80 | alarme pb 80      (seuil 0-100 %, defaut 100)\n"
               << "  consigne gb 50 | consigne pb 75  (auto, 0-100 %)\n"
               << "  gains gb 4 0.03 0 | gains pb 2 0.02 0\n"
               << "  etat | rearme | aide | arret | quitter\n\n";
@@ -354,9 +354,7 @@ void traiterLigneConsole(const std::string& ligne, RegulationBassins& regulation
     }
     if (action == "alarme" && (cible == "gb" || cible == "pb"))
     {
-        if (nombre == 0)
-            std::cerr << "Seuil d'alarme : minimum 1 %, maximum 100 %.\n";
-        else if (cible == "gb")
+        if (cible == "gb")
             demandeSeuilAlarmeGB.store(nombre);
         else
             demandeSeuilAlarmePB.store(nombre);
@@ -947,37 +945,17 @@ int main(int argc, char* argv[])
         
 
         
-        // Depassement de niveau / debordement : une alarme de procede,
-        // distincte d'un arret d'urgence materiel ou d'une panne serie.
-        // La pompe est commune : on ferme les deux arrivees pour eviter
-        // tout remplissage involontaire pendant l'alarme.
-        const bool nouveauDefautGB = lecture.debordementGrosBassin ||
-                                     lecture.niveauGrosBassin > seuilAlarmeGB;
-        const bool nouveauDefautPB = lecture.debordementPetitBassin ||
-                                     lecture.niveauPetitBassin > seuilAlarmePB;
+        // DEBUT DU CODE MODIFIE AVEC L'AIDE D'UNE IA
+        // Un seuil de niveau est un avertissement, pas un arret de securite.
+        const bool nouveauDefautGB = lecture.debordementGrosBassin;
+        const bool nouveauDefautPB = lecture.debordementPetitBassin;
+        // FIN DU CODE MODIFIE AVEC L'AIDE D'UNE IA
         const bool mesureDefectueuse =
             !std::isfinite(lecture.niveauGrosBassin) ||
             !std::isfinite(lecture.niveauPetitBassin) ||
             lecture.niveauGrosBassin < -2.0 ||
             lecture.niveauPetitBassin < -2.0;
 
-        // DEBUT DU CODE AJOUTE AVEC L'AIDE D'UNE IA
-        const bool conditionsAlarme[] = {lecture.debordementGrosBassin,
-            lecture.debordementPetitBassin, lecture.niveauGrosBassin > seuilAlarmeGB,
-            lecture.niveauPetitBassin > seuilAlarmePB};
-        for (int i = 0; i < 4; ++i) {
-            const bool ack = ackAlarmes[i].exchange(false);
-            if (ack && !mqtt.publier(topicsAlarmes[i], "", true)) {
-                ackAlarmes[i].store(true);
-                continue;
-            }
-            if (alarmes[i].actualiser(conditionsAlarme[i], ack,
-                    i < 2 ? 0 : tempsAlarmes[i-2].load(),
-                    i < 2 ? 10 : tempsAlarmes[i].load()))
-                if (!mqtt.publier(topicsAlarmes[i], "ON", true))
-                    alarmes[i].publicationEchouee();
-        }
-        // FIN DU CODE AJOUTE AVEC L'AIDE D'UNE IA
         if ((nouveauDefautGB || nouveauDefautPB || niveauInvalide || mesureDefectueuse) &&
             !alarmeNiveauVerrouillee)
         {
@@ -1003,21 +981,16 @@ int main(int argc, char* argv[])
                           << panneau.obtenirErreur() << std::endl;
                 controle.declencherArretUrgence();
             }
-            std::cerr << "ALARME NIVEAU : actionneurs fermes. "
-                      << "Corriger le niveau puis saisir rearme.\n";
+            std::cerr << "DEFAUT SECURITE : actionneurs fermes. "
+                      << "Corriger le defaut puis saisir rearme.\n";
         }
 
-        // Un rearmement est refuse tant que le niveau n'est pas redescendu
-        // sous 90 %, que le capteur signale encore le debordement, ou si
-        // une mesure est defectueuse. L'hysteresis evite les rearmements
-        // immediats autour du seuil d'alarme de 95 %.
+        // Le rearmement depend des defauts critiques, non du seuil d'avertissement.
         if (demandeRearmement.exchange(false))
         {
-            const bool retourSur = !mesureDefectueuse &&
-                !lecture.debordementGrosBassin &&
-                !lecture.debordementPetitBassin &&
-                lecture.niveauGrosBassin < std::max(0, seuilAlarmeGB - 1) &&
-                lecture.niveauPetitBassin < std::max(0, seuilAlarmePB - 1);
+            const bool retourSur = !niveauInvalide && !mesureDefectueuse &&
+                !lecture.debordementGrosBassin && !lecture.debordementPetitBassin;
+
             if (alarmeNiveauVerrouillee && retourSur &&
                 !controle.estArretUrgenceActif())
             {
@@ -1032,10 +1005,37 @@ int main(int argc, char* argv[])
                 mqtt.publier(TopicsMqtt::MODE, controle.obtenirMode());
                 std::cout << "Alarme rearmee : MANUEL, pompe OFF, valves fermees.\n";
             }
+
+            else if (controle.estArretUrgenceActif())
+                std::cerr << "Arret logiciel ou defaut verrouille : verifier le panneau puis redemarrer.\n";
+
+            else if (!retourSur)
+                std::cerr << "Rearmement refuse : debordement ou mesure de niveau non sure.\n";
+                
             else
-                std::cerr << "Rearmement refuse : niveau/capteur non sur "
-                          << "ou arret d'urgence actif.\n";
+                std::cout << "Aucun defaut de niveau a rearmer.\n";
         }
+
+        // DEBUT DU CODE AJOUTE AVEC L'AIDE D'UNE IA
+        const bool conditionsAlarme[] = {lecture.debordementGrosBassin,
+            lecture.debordementPetitBassin, lecture.niveauGrosBassin > seuilAlarmeGB,
+            lecture.niveauPetitBassin > seuilAlarmePB};
+        for (int i = 0; i < 4; ++i) {
+            const bool ack = ackAlarmes[i].exchange(false);
+            if (ack && !mqtt.publier(topicsAlarmes[i], "", true)) {
+                ackAlarmes[i].store(true);
+                continue;
+            }
+            if (alarmes[i].actualiser(conditionsAlarme[i], ack,
+                    i < 2 ? 0 : tempsAlarmes[i-2].load(),
+                    i < 2 ? 10 : tempsAlarmes[i].load()))
+                if (!mqtt.publier(topicsAlarmes[i], "ON", true))
+                    alarmes[i].publicationEchouee();
+        }
+        // FIN DU CODE AJOUTE AVEC L'AIDE D'UNE IA
+        // Indiquer les avertissements emis sans verrouiller la regulation.
+        alarmeGB = lecture.debordementGrosBassin || alarmes[2].estEmise();
+        alarmePB = lecture.debordementPetitBassin || alarmes[3].estEmise();
 
         const bool modeAuto =
             controle.obtenirMode() == "auto";
