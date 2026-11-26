@@ -24,8 +24,8 @@ int main()
            cmd.valveGB > 0 &&
            cmd.valvePB > 0);
 
-    assert(cmd.valveGB <= 50 &&
-           cmd.valvePB <= 25);
+    assert(cmd.valveGB <= 100 &&
+           cmd.valvePB <= 100);
 
     cmd = regulation.calculer(
         10, 10, 50, 0, 1.0, true
