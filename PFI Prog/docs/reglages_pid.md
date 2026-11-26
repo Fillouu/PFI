@@ -1,41 +1,36 @@
-
 # Réglages du PID — panneau RAM
 
 ## But
 
-Réguler indépendamment le niveau du grand bassin (GB) et du petit bassin (PB) par deux PID, en gardant la **pompe commune** en marche lorsque l'une des valves de remplissage doit s'ouvrir. Les valeurs de consigne sont des niveaux de bassin en pourcentage et **non** des pourcentages d'ouverture des valves.
+Réguler indépendamment le niveau du grand bassin (GB) et du petit bassin (PB) par deux PID. Les consignes représentent les niveaux d'eau en pourcentage, et non l'ouverture des valves. La pompe commune reste active en AUTO lorsqu'elle est autorisée et que les conditions de sécurité sont respectées.
 
-## Réglages logiciels actuels (à valider sur le simulateur puis au laboratoire)
+## Réglages retenus sur le panneau réel
 
 | Bassin | Kp | Ki | Kd | Limite de sortie |
 |---|---:|---:|---:|---:|
-| Grand bassin | 4,0 | 0,03 | 0 | 0 à 50 % |
-| Petit bassin | 2,0 | 0,02 | 0 | 0 à 25 % |
+| Grand bassin | 5,0 | 0,70 | 2,0 | 0 à 100 % |
+| Petit bassin | 2,0 | 0,18 | 1,0 | 0 à 100 % |
 
-Ces gains et limites existaient dans le code reçu. Ils ne sont **pas validés sur le panneau réel**. Une petite hystérésis de pompe évite d'attendre un écart de niveau trop élevé avant de réagir. Le calcul se fait avec le temps réellement écoulé entre deux itérations.
+Les gains sont intégrés au constructeur de `RegulationBassins`. Le calcul utilise le temps écoulé entre les itérations; la dérivée est calculée sur la mesure.
 
-- `gains gb 4 0.03 0` : modifier les trois gains du GB sans relancer le programme.
-- `gains pb 2 0.02 0` : modifier les gains du PB sans relancer le programme.
-- Les gains doivent être finis et entre 0 et 100. Il faut démarrer par des gains conservateurs et enregistrer les courbes avant toute augmentation.
+- `gains gb 5 0.7 2` : modifier les gains GB sans redémarrage.
+- `gains pb 2 0.18 1` : modifier les gains PB sans redémarrage.
 
 ## Comportement des valves de purge
 
-Les valves de purge sont les **sorties d'eau**. Les valves de remplissage sont les **sorties de commande du Pi**. Elles ne doivent pas être confondues.
-
-- Purge fermée, niveau en dessous de la consigne : le PID remplit le bassin jusqu'à la consigne.
-- Purge fermée et niveau à moins de 0,5 point de la consigne : la valve de remplissage du bassin ferme complètement. Si les deux bassins sont satisfaits, la pompe s'arrête.
-- Purge ouverte : la boucle PID compense la baisse de niveau lorsque la sortie d'eau crée une erreur. Elle ne peut pas maintenir une consigne si la vidange dépasse le débit maximum de remplissage.
-- Lorsque l'ouverture des purges est connue par MQTT, le programme reçoit `RAM/valves/etats/Ouverture_GB` et `RAM/valves/etats/Ouverture_PB`. Si l'unité de purge est absente, la régulation peut encore fonctionner à partir des mesures de niveau, mais **la fermeture physique des purges n'est alors pas confirmée**.
+Les valves de remplissage sont commandées par le Pi. Les valves de purge servent à la sortie de l'eau. Les mesures de position des purges ne sont pas requises par le PID. Lorsque le niveau diminue, le PID peut augmenter la commande de remplissage pour compenser. Lorsque le niveau dépasse la consigne, il réduit la commande; la baisse du niveau dépend de l'écoulement physique. Une consigne nulle force la fermeture de la valve correspondante. La pompe ne s'arrête pas automatiquement à l'atteinte des consignes en AUTO; le circuit doit être adapté à ce fonctionnement.
 
 ## Essais et méthode de réglage
 
-1. Vérifier l'absence d'alarmes et effectuer un essai à une consigne faible, par exemple 10 % (ne pas commencer directement à 75 % sur le banc).
-2. Essayer uniquement P (`Ki=0, Kd=0`), observer la montée et le dépassement, et enregistrer la courbe niveau-consigne-commande.
-3. Ajouter un faible `Ki` pour corriger l'erreur permanente lors de l'ouverture d'une purge.
-4. Tester un changement de consigne et l'ouverture/fermeture des purges. Ajuster les gains prudemment : le D est calculé sur la mesure pour éviter un à-coup lors d'un changement de consigne.
-5. Vérifier le retour à 0 % des valves de remplissage et l'arrêt de la pompe lors de l'atteinte des consignes, en situation sans vidange.
-6. Mesurer le temps de réponse, le dépassement maximal et l'erreur stationnaire. Les inscrire dans le rapport avec des captures/courbes.
+Les gains ont été ajustés progressivement à une consigne de 20 %, en observant la vitesse de réponse, les oscillations et la précision. Les essais à deux bassins ont ensuite permis de vérifier des changements de consignes.
 
-**Résultat actuel :** tests unitaires validés en C++ ; performances dynamiques, précision ±1 % et comportement du matériel **non mesurés**.
+| Consigne GB/PB | Niveau GB/PB observé | Écart signé GB/PB |
+|---|---|---|
+| 30 / 25 % | 29,96 / 25,42 % | -0,04 / +0,42 point |
+| 30 / 30 % | 29,78 / 29,47 % | -0,22 / -0,53 point |
 
-**Attention :** une consigne de 95 % ou plus entre en conflit avec le seuil de protection existant (`niveau >= 95 %`). Ne pas utiliser ces consignes tant que le seuil de sécurité n'a pas été revu et validé avec le professeur.
+Ces mesures sont ponctuelles et ne prouvent pas une précision durable de ±1 %. Les observations de chaque combinaison de gains figurent dans [les résultats des essais](resultats_essais_26nov.md). Les courbes disponibles proviennent du journal MQTT à 15 %; elles ne remplacent pas les courbes manquantes de chaque réglage intermédiaire.
+
+![Réponse des niveaux lors de l'essai à 15 %](courbes/regulation_15.png)
+
+**Attention :** le code considère un niveau non fini, inférieur à -2 % ou supérieur ou égal à 100 % comme invalide. Les tiges de débordement déclenchent indépendamment la sécurité. Ne pas utiliser de consignes proches du débordement en fonctionnement normal.
