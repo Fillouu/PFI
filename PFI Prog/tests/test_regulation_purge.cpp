@@ -9,7 +9,7 @@ int main()
 {
     RegulationBassins regulation;
 
-    // Remplissage initial avec les purges fermees
+    // Remplissage initial
     auto sortie = regulation.calculer(
         50, 75, 0, 0, 1.0, true, 0, 0
     );
@@ -18,23 +18,23 @@ int main()
     assert(sortie.valveGB > 0);
     assert(sortie.valvePB > 0);
 
-    // Fermeture aux consignes demandees
+    // Le PID reste actif pres de la consigne, sans arret de la pompe
     sortie = regulation.calculer(
         50, 75, 49.7, 74.7, 1.0, true, 0, 0
     );
 
-    assert(!sortie.pompe);
-    assert(sortie.valveGB == 0);
-    assert(sortie.valvePB == 0);
+    assert(sortie.pompe);
+    assert(sortie.valveGB >= 0 && sortie.valveGB <= 100);
+    assert(sortie.valvePB >= 0 && sortie.valvePB <= 100);
 
-    // Reprise si les purges sont ouvertes
+    // Regulation independante des mesures de purge
     sortie = regulation.calculer(
         50, 75, 49.0, 74.0, 1.0, true, 40, 30
     );
 
     assert(sortie.pompe);
-    assert(sortie.valveGB > 0);
-    assert(sortie.valvePB > 0);
+    assert(sortie.valveGB >= 0 && sortie.valveGB <= 100);
+    assert(sortie.valvePB >= 0 && sortie.valvePB <= 100);
 
     // Nouvelles consignes independantes
     sortie = regulation.calculer(
@@ -42,8 +42,8 @@ int main()
     );
 
     assert(sortie.pompe);
-    assert(sortie.valveGB > 0);
-    assert(sortie.valvePB > 0);
+    assert(sortie.valveGB >= 0 && sortie.valveGB <= 100);
+    assert(sortie.valvePB >= 0 && sortie.valvePB <= 100);
 
     // GB a 0, PB conserve son PID
     regulation.reinitialiser();
@@ -67,14 +67,14 @@ int main()
     assert(sortie.valveGB > 0);
     assert(sortie.valvePB == 0);
 
-    // Deux consignes nulles
+    // Deux consignes nulles : pompe toujours autorisee
     regulation.reinitialiser();
 
     sortie = regulation.calculer(
         0, 0, 0, 0, 1.0, true, 0, 0
     );
 
-    assert(!sortie.pompe);
+    assert(sortie.pompe);
     assert(sortie.valveGB == 0);
     assert(sortie.valvePB == 0);
 

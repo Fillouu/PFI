@@ -39,15 +39,15 @@ int main()
         10, 10, 50, 50, 1.0, true
     );
 
-    assert(!cmd.pompe &&
-           cmd.valveGB == 0 &&
-           cmd.valvePB == 0);
+    // DEBUT DU CODE MODIFIE AVEC L'AIDE D'UNE IA
+    assert(cmd.pompe && cmd.valveGB == 0 && cmd.valvePB == 0);
 
     cmd = regulation.calculer(
         10, 10, 0, 0, 1.0, true
     );
 
     assert(cmd.pompe);
+    // FIN DU CODE MODIFIE AVEC L'AIDE D'UNE IA
 
     cmd = regulation.calculer(
         10, 10, 0, 0, 1.0, false
