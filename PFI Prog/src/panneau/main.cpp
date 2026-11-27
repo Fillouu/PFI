@@ -47,21 +47,30 @@ T limiter(T valeur, T minimum, T maximum)
 //  0 : manuel
 //  1 : automatique
 std::atomic<int> demandeMode{-1};
+
 std::atomic<int> demandeConsigneGB{-1};
 std::atomic<int> demandeConsignePB{-1};
 
 std::atomic<int> demandeValveManuelleGB{-1};
 std::atomic<int> demandeValveManuellePB{-1};
+
+std::atomic<int> demandeValveManuelleEC{-1};
+std::atomic<int> demandeValveManuelleEF{-1};
+
 std::atomic<int> demandePompeManuelle{-1};
+
 std::atomic<int> demandeSeuilAlarmeGB{-1};
 std::atomic<int> demandeSeuilAlarmePB{-1};
 
-// DEBUT DU CODE AJOUTE AVEC L'AIDE D'UNE IA
+
 const char* topicsAlarmes[] = {"RAM/ALARMES/ETATS/ALR_GB_OVF", "RAM/ALARMES/ETATS/ALR_PB_OVF", "RAM/ALARMES/ETATS/ALR_GB_NIV_MAX", "RAM/ALARMES/ETATS/ALR_PB_NIV_MAX"};
 const char* topicsTemps[] = {"RAM/ALARMES/CMD/TGNIVGB", "RAM/ALARMES/CMD/TGNIVPB", "RAM/ALARMES/CMD/TRNIVGB", "RAM/ALARMES/CMD/TRNIVPB"};
+
+
 std::atomic<bool> ackAlarmes[4]{};
 std::atomic<int> tempsAlarmes[4]{{3},{3},{10},{10}};
-// FIN DU CODE AJOUTE AVEC L'AIDE D'UNE IA
+
+
 // Un affichage au lancement, puis seulement avec la commande etat.
 std::atomic<bool> afficherEtatDemande{true};
 std::atomic<bool> demandeRearmement{false};
@@ -253,6 +262,7 @@ void afficherAideConsole()
               << "  manuel | auto  (ou mode manuel | mode auto)\n"
               << "  valve gb 50 | valve pb 0         (manuel, 0-100 %)\n"
               << "  pompe on | pompe off             (manuel et auto)\n"
+              << "  valve ec 50 | valve ef 50        (manuel, 0-100 %)\n"
               << "  alarme gb 80 | alarme pb 80      (seuil 0-100 %, defaut 100)\n"
               << "  consigne gb 50 | consigne pb 75  (auto, 0-100 %)\n"
               << "  gains gb 5 0.7 3 | gains pb 2 0.22 2\n"
@@ -365,12 +375,22 @@ void traiterLigneConsole(const std::string& ligne, RegulationBassins& regulation
     }
     else if (action == "valve" && cible == "gb")
         demandeValveManuelleGB.store(nombre);
+
     else if (action == "valve" && cible == "pb")
         demandeValveManuellePB.store(nombre);
+
+    else if (action == "valve" && cible == "ec")
+        demandeValveManuelleEC.store(nombre);
+
+    else if (action == "valve" && cible == "ef")
+        demandeValveManuelleEF.store(nombre);
+
     else if (action == "consigne" && cible == "gb")
         demandeConsigneGB.store(nombre);
+
     else if (action == "consigne" && cible == "pb")
         demandeConsignePB.store(nombre);
+
     else
         std::cerr << "Commande inconnue; saisir aide.\n";
 }
@@ -872,6 +892,8 @@ int main(int argc, char* argv[])
                 {
                     demandeValveManuelleGB.store(-1);
                     demandeValveManuellePB.store(-1);
+                    demandeValveManuelleEC.store(-1);
+                    demandeValveManuelleEF.store(-1);
                     demandePompeManuelle.store(-1);
                 }
 
@@ -1229,6 +1251,13 @@ int main(int argc, char* argv[])
         const int nouvelleValvePB =
             demandeValveManuellePB.exchange(-1);
 
+        const int nouvelleValveEC =
+            demandeValveManuelleEC.exchange(-1);
+
+        const int nouvelleValveEF =
+            demandeValveManuelleEF.exchange(-1);
+
+
         const bool manuelAutorise =
             controle.obtenirMode() == "manuel" &&
             !controle.estArretUrgenceActif() &&
@@ -1239,6 +1268,42 @@ int main(int argc, char* argv[])
         if (manuelAutorise)
         {
             bool modification = pompeManuelleModifiee;
+            bool succesTemperature = true;
+
+            if (nouvelleValveEC >= 0)
+            {
+                succesTemperature =
+                    panneau.commanderValveEC(nouvelleValveEC);
+            }
+
+            if (succesTemperature && nouvelleValveEF >= 0)
+            {
+                succesTemperature =
+                    panneau.commanderValveEF(nouvelleValveEF);
+            }
+
+            if (!succesTemperature)
+            {
+                controle.declencherArretUrgence();
+
+                if (!panneau.mettreEnSecuriteSimulateur())
+                {
+                    std::cerr
+                        << "ERREUR CRITIQUE : mise en securite non confirmee\n";
+                }
+
+                commandesManuellesActives = false;
+                pompeAppliquee = false;
+                pompeManuelle = false;
+                valveManuelleGB = 0.0;
+                valveManuellePB = 0.0;
+
+                publierEtat(TopicsMqtt::MODE, controle.obtenirMode());
+
+                std::cerr << "ARRET : erreur commande valve EC/EF\n";
+
+                continue;
+            }
 
             if (nouvelleValveGB >= 0)
             {
