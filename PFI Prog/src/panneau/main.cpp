@@ -19,6 +19,9 @@
 #include <streambuf>
 #include <deque>
 #include <map>
+#include <fstream>
+#include <locale>
+#include <sys/stat.h>
 
 #include "panneau/ControlePanneau.h"
 #include "panneau/GestionAlarmes.h"
@@ -759,6 +762,51 @@ int main(int argc, char* argv[])
     // Vrai delta t (la lecture serie prend un temps variable).
     auto derniereIteration = std::chrono::steady_clock::now();
 
+    // DEBUT DU CODE AJOUTE AVEC L'AIDE D'UNE IA
+
+    mkdir("logs", 0755);
+
+    std::ofstream historiquePid(
+        "logs/pid_niveaux.csv",
+        std::ios::out | std::ios::trunc
+    );
+
+    const auto debutHistorique =
+        std::chrono::steady_clock::now();
+
+    if (historiquePid.is_open())
+    {
+        historiquePid.imbue(std::locale::classic());
+
+        historiquePid
+            << "temps_s,dt_reel_s,dt_pid_s,"
+            << "mode,regulation_autorisee,"
+            << "consigne_GB,consigne_PB,"
+            << "niveau_GB,niveau_PB,"
+            << "erreur_GB,erreur_PB,"
+            << "sortie_PID_GB,sortie_PID_PB,"
+            << "valve_GB_mesuree,valve_PB_mesuree,"
+            << "valve_GB_manuelle,valve_PB_manuelle,"
+            << "courant_GB_mA,courant_PB_mA,"
+            << "Kp_GB,Ki_GB,Kd_GB,"
+            << "Kp_PB,Ki_PB,Kd_PB,"
+            << "pompe_appliquee,pompe_autorisee,"
+            << "temperature_PB,"
+            << "seuil_alarme_GB,seuil_alarme_PB,"
+            << "alarme_GB,alarme_PB,"
+            << "debordement_GB,debordement_PB,"
+            << "securite_verrouillee,arret_logiciel\n";
+
+        historiquePid.flush();
+    }
+    else
+    {
+        std::cerr << "Impossible de creer "
+                << "logs/pid_niveaux.csv\n";
+    }
+
+    // FIN DU CODE AJOUTE AVEC L'AIDE D'UNE IA
+
     while (!finProgrammeDemandee)
     {
         if (!mqtt.estConnecte()) {
@@ -1064,9 +1112,14 @@ int main(int argc, char* argv[])
             controle.obtenirMode() == "auto";
 
         const auto maintenant = std::chrono::steady_clock::now();
+
         double dtRegulation =
             std::chrono::duration<double>(maintenant - derniereIteration).count();
+
+        const double dtReel = dtRegulation;
+
         derniereIteration = maintenant;
+
         if (!std::isfinite(dtRegulation) || dtRegulation < 0.01 ||
             dtRegulation > 5.0)
         {
@@ -1338,6 +1391,87 @@ int main(int argc, char* argv[])
         {
             std::cerr << "Erreur publication temperature PB" << std::endl;
         }
+
+        // DEBUT DU CODE AJOUTE AVEC L'AIDE D'UNE IA
+
+        if (historiquePid.is_open() && historiquePid.good())
+        {
+            const double temps =
+                std::chrono::duration<double>(
+                    maintenant - debutHistorique).count();
+
+            const double erreurGB =
+                controle.obtenirConsigneGB()
+                - lecture.niveauGrosBassin;
+
+            const double erreurPB =
+                controle.obtenirConsignePB()
+                - lecture.niveauPetitBassin;
+
+            const Pid& pidGB = regulation.obtenirPidGB();
+            const Pid& pidPB = regulation.obtenirPidPB();
+
+            historiquePid
+                << std::fixed << std::setprecision(6)
+
+                << temps << ','
+                << dtReel << ','
+                << dtRegulation << ','
+
+                << controle.obtenirMode() << ','
+                << regulationAutorisee << ','
+
+                << controle.obtenirConsigneGB() << ','
+                << controle.obtenirConsignePB() << ','
+
+                << lecture.niveauGrosBassin << ','
+                << lecture.niveauPetitBassin << ','
+
+                << erreurGB << ','
+                << erreurPB << ','
+
+                << derniereCommandePidGB << ','
+                << derniereCommandePidPB << ','
+
+                << lecture.ouvertureValve[1] << ','
+                << lecture.ouvertureValve[2] << ','
+
+                << valveManuelleGB << ','
+                << valveManuellePB << ','
+
+                << lecture.courant[1] << ','
+                << lecture.courant[2] << ','
+
+                << pidGB.obtenirKp() << ','
+                << pidGB.obtenirKi() << ','
+                << pidGB.obtenirKd() << ','
+
+                << pidPB.obtenirKp() << ','
+                << pidPB.obtenirKi() << ','
+                << pidPB.obtenirKd() << ','
+
+                << pompeAppliquee << ','
+                << pompeAutoriseeAuto << ','
+
+                << lecture.temperaturePetitBassin << ','
+
+                << seuilAlarmeGB << ','
+                << seuilAlarmePB << ','
+
+                << alarmeGB << ','
+                << alarmePB << ','
+
+                << lecture.debordementGrosBassin << ','
+                << lecture.debordementPetitBassin << ','
+
+                << alarmeNiveauVerrouillee << ','
+                << controle.estArretUrgenceActif()
+
+                << '\n';
+
+            historiquePid.flush();
+        }
+        // FIN DU CODE AJOUTE AVEC L'AIDE D'UNE IA
 
         // Le tableau reste a sa place et se met a jour a chaque lecture.
         console.afficher(lecture, controle, derniereCommandePidGB,

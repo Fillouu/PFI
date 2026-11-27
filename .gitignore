@@ -27,4 +27,8 @@
 **/.DS_Store
 Thumbs.db
 
+# Historique des acquisitions experimentales
+**/logs/
+
+
 **/build-rpi2/

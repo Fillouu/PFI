@@ -20,6 +20,11 @@ public:
                              double dt, bool autorise,
                              int purgeGB = -1, int purgePB = -1);
 
+    // DEBUT DU CODE AJOUTE AVEC L'AIDE D'UNE IA
+    const Pid& obtenirPidGB() const { return pidGB_; }
+    const Pid& obtenirPidPB() const { return pidPB_; }
+    // FIN DU CODE AJOUTE AVEC L'AIDE D'UNE IA
+
     bool reglerGainsGB(double kp, double ki, double kd);
     bool reglerGainsPB(double kp, double ki, double kd);
 
