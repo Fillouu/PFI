@@ -255,7 +255,7 @@ void afficherAideConsole()
               << "  pompe on | pompe off             (manuel et auto)\n"
               << "  alarme gb 80 | alarme pb 80      (seuil 0-100 %, defaut 100)\n"
               << "  consigne gb 50 | consigne pb 75  (auto, 0-100 %)\n"
-              << "  gains gb 5 0.7 2 | gains pb 2 0.18 1\n"
+              << "  gains gb 5 0.7 3 | gains pb 2 0.22 2\n"
               << "  etat | rearme | aide | arret | quitter\n\n";
 }
 

@@ -5,8 +5,8 @@
 #include <cmath>
 
 RegulationBassins::RegulationBassins()
-    : pidGB_(5.0, 0.7, 2.0),
-      pidPB_(2.0, 0.18, 1.0)
+    : pidGB_(5.0, 0.7, 3.0),
+      pidPB_(2.0, 0.22, 2.0)
 {
     pidGB_.definirLimites(0.0, 100.0);
     pidPB_.definirLimites(0.0, 100.0);
