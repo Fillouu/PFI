@@ -51,6 +51,44 @@ bool InterfacePanneau::commanderPompe(bool marche)
     return panneau.setPump(marche);
 }
 
+
+bool InterfacePanneau::commanderValveEC(double ouverture)
+{
+    if (!std::isfinite(ouverture) ||
+        ouverture < 0.0 || ouverture > 100.0)
+    {
+        return false;
+    }
+
+    return panneau.setValve(
+        Valve::HotWater, ouverture
+    );
+}
+
+bool InterfacePanneau::commanderValveEF(double ouverture)
+{
+    if (!std::isfinite(ouverture) ||
+        ouverture < 0.0 || ouverture > 100.0)
+    {
+        return false;
+    }
+
+    return panneau.setValve(
+        Valve::ColdWater, ouverture
+    );
+}
+
+bool InterfacePanneau::commanderArriveeEC(bool ouverte)
+{
+    return panneau.setHotWater(ouverte);
+}
+
+bool InterfacePanneau::commanderArriveeEF(bool ouverte)
+{
+    return panneau.setColdWater(ouverte);
+}
+
+
 void InterfacePanneau::deconnecter()
 {
     panneau.close();

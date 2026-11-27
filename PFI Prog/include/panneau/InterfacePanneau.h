@@ -18,6 +18,12 @@ public:
     bool commanderValvePB(double ouverture);
     bool commanderPompe(bool marche);
 
+    bool commanderValveEC(double ouverture);
+    bool commanderValveEF(double ouverture);
+
+    bool commanderArriveeEC(bool ouverte);
+    bool commanderArriveeEF(bool ouverte);
+
     bool mettreEnSecuriteSimulateur();
 
     void deconnecter();
