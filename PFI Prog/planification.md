@@ -14,27 +14,27 @@
 
 | Déposer le fichier `planification.md` dans le dépôt GitHub. | Jeudi 12 novembre | fait | 12 novembre 2026 | Premier livrable obligatoire. |
 
-| Organiser les dossiers et vérifier la compilation C++ des programmes panneau RAM et Power Meter. | Jeudi 12 novembre | en cours | — | Structure du panneau RAM terminée. Compilation WSL et ARM réussie et 4 tests unitaires réussis avant le dernier ajout MQTT. Power Meter à compléter. |
+| Organiser les dossiers et vérifier la compilation C++ des programmes panneau RAM et Power Meter. | Jeudi 12 novembre | fait | — | Panneau RAM structuré; compilation WSL et ARM et quatre tests unitaires réussis selon le suivi. Power Meter : fichiers sources vides et aucune cible CMake. Nouvelle date visée proposée : 3 décembre, sous réserve du matériel. |
 
 | Faire communiquer le Raspberry Pi avec le panneau RAM et lire les niveaux des deux bassins. | Jeudi 19 novembre | fait | 19 novembre 2026 | Communication validée avec le simulateur RAM le 19 novembre et avec le panneau réel le 25 novembre. |
 
-| Mettre en place la communication MQTT du panneau RAM : publier les états et recevoir les commandes. | Jeudi 19 novembre | en cours | — | Commandes de mode, valves et consignes testées. Publication des niveaux, température, positions des valves, pompe et alarmes fonctionnelle. Optimisation des publications réalisée. Synchronisation des consignes ajoutée, mais non testée. Finalisation visée le 3 décembre. |
+| Mettre en place la communication MQTT du panneau RAM : publier les états et recevoir les commandes. | Jeudi 19 novembre | fait | — | Commandes et publications principales validées sur le panneau. Synchronisation des consignes présente dans le programme, mais non validée spécifiquement sur matériel. Nouvelle date visée : 3 décembre. |
 
 | Établir une première communication série avec le Power Meter. | Jeudi 19 novembre | en retard | — | Appareil non disponible et protocole série absent de l'énoncé. Nouvelle date visée : 3 décembre 2026, sous réserve de l'accès au matériel et au protocole. |
 
-| Programmer la régulation PID du niveau des deux bassins du panneau RAM. | Jeudi 26 novembre | fait | 25 novembre 2026 | PID GB et PB réglés et testés sur le panneau réel. Gains GB : 5 / 0,7 / 2. Gains PB : 2 / 0,18 / 1. Sorties bornées entre 0 et 100 %. Régulation simultanée fonctionnelle. |
+| Programmer la régulation PID du niveau des deux bassins du panneau RAM. | Jeudi 26 novembre | fait | 25 novembre 2026 | Régulation simultanée validée; optimisation le 27 novembre avec huit essais CSV. Gains GB : 5 / 0,70 / 3; PB : 2 / 0,22 / 2. Sorties 0 à 100 %. Précision finale à ±1 point lors de l’essai 07; maintien de cinq minutes non validé. |
 
-| Détecter les débordements et dépassements de niveau, transmettre les alarmes et tester les sécurités du panneau RAM. | Jeudi 26 novembre | en cours | — | Alarmes de niveau, génération après environ 3 s, répétition après ACK de 10 s, débordements GB/PB, réarmement, arrêt logiciel et perte MQTT validés sur le panneau réel. Perte RS-232 programmée, mais non testée physiquement en fonctionnement. |
+| Détecter les débordements et dépassements de niveau, transmettre les alarmes et tester les sécurités du panneau RAM. | Jeudi 26 novembre | fait | — | Alarmes de niveau, temporisations, débordements GB/PB, réarmement, arrêt logiciel et perte MQTT testés. Traitement de perte série présent, mais essai physique en fonctionnement non réalisé. Nouvelle date visée proposée : 3 décembre. |
 
 | Faire fonctionner les modes MANUEL et AUTOMATIQUE et le changement de consigne de niveau. | Jeudi 26 novembre | fait | 25 novembre 2026 | Commandes manuelles et automatiques fonctionnelles. Changements de consignes et régulation simultanée validés sur le panneau réel. Pompe maintenue active en AUTO lorsqu'elle est autorisée. |
 
-| Vérifier le fonctionnement du PID de niveau lorsqu'une purge est ouverte. | Jeudi 26 novembre | en cours | — | Régulation indépendante des mesures des valves de purge. Essai spécifique avec une purge ouverte restant à documenter. Ne comprend pas la programmation de l'unité distincte des valves de purge (section 7). |
+| Vérifier le fonctionnement du PID de niveau lorsqu'une purge est ouverte. | Jeudi 26 novembre | fait | — | Test logiciel regulation_purge réussi selon le suivi; les mesures de purge ne sont pas utilisées par le PID. Aucun essai physique isolé documenté. Nouvelle date visée proposée : 3 décembre. Section 7 hors portée. |
 
-| Documenter les premiers essais de niveau et les réglages du PID. | Jeudi 26 novembre | en cours | — | Gains définitifs, observations, résultats des essais, courbes expérimentales et théoriques documentés. Les courbes expérimentales de chaque combinaison intermédiaire de gains ne sont pas disponibles. |
+| Documenter les premiers essais de niveau et les réglages du PID. | Jeudi 26 novembre | fait | 27 novembre 2026 | Rapport optimisation_pid.md, huit CSV, 32 graphiques et deux tableaux de résultats présents; réglages, essais et README actualisés. |
 
-| Réguler la température du petit bassin en maintenant le contrôle de niveau. | Jeudi 3 décembre | à faire | — | Tester une consigne initiale, puis son changement, pendant que le niveau demeure régulé; documenter les réglages. |
+| Réguler la température du petit bassin en maintenant le contrôle de niveau. | Jeudi 3 décembre | à faire | — | Lecture, affichage et publication MQTT de la température PB présents. Régulation de température et commande des valves chaude/froide à programmer et tester. |
 
-| Finaliser l'affichage local et la synchronisation des commandes du panneau RAM. | Jeudi 3 décembre | à faire | — | Vérifier les modes et commandes depuis la console locale et le superviseur MQTT, sans désaccord entre les états. |
+| Finaliser l'affichage local et la synchronisation des commandes du panneau RAM. | Jeudi 3 décembre | en cours | — | Affichage local stable et commandes console présents. Vérifier la synchronisation des consignes et états avec le superviseur MQTT. |
 
 | Lire et afficher les mesures du Power Meter (tensions, courants, puissance, énergie, facteur de puissance). | Jeudi 3 décembre | à faire | — | Confirmer le modèle, le protocole et les unités à partir de l'appareil ou de la documentation technique; vérifier des données réelles. Dépend de la disponibilité matérielle. |
 
@@ -42,13 +42,13 @@
 
 | Détecter la perte de communication avec le Power Meter et émettre l'alarme correspondante. | Jeudi 3 décembre | à faire | — | Vérifier la détection d'une perte du lien et le comportement au retour de la communication. |
 
-| Revoir la structure du code C++ des deux unités (SOLID, The Power of 10, machines à états si pertinentes). | Jeudi 10 décembre | à faire | — | Vérifier la séparation des responsabilités, la lisibilité, la gestion des erreurs et la conformité du code au plan de conception. |
+| Revoir la structure du code C++ des deux unités (SOLID, The Power of 10, machines à états si pertinentes). | Jeudi 10 décembre | en cours | — | Classes séparées pour interface, contrôle, PID, alarmes et MQTT du panneau RAM. Revue SOLID / Power of 10 et développement Power Meter à compléter. |
 
-| Rédiger les documents de conception, de réglage et les plans d'essai nécessaires pour les deux unités. | Jeudi 10 décembre | à faire | — | Conserver des documents courts expliquant le code, ses paramètres et les résultats d'essai. |
+| Rédiger les documents de conception, de réglage et les plans d'essai nécessaires pour les deux unités. | Jeudi 10 décembre | en cours | — | Réglages PID, essais du panneau et rapport d’optimisation présents. conception_panneau.md et documents Power Meter vides; compléter. |
 
-| Rédiger la documentation de maintenance du panneau RAM et celle du Power Meter. | Jeudi 10 décembre | à faire | — | Pour chaque unité : démarrage, essais de sécurité, cas limites, pannes possibles, réactions attendues et démarches de diagnostic. |
+| Rédiger la documentation de maintenance du panneau RAM et celle du Power Meter. | Jeudi 10 décembre | en cours | — | Guide de maintenance panneau RAM présent; maintenance_powermeter.md vide. Compléter et valider. |
 
-| Faire les essais de démonstration et de pannes des deux unités. | Jeudi 10 décembre | à faire | — | Vérifier les scénarios applicables : perte de lien série, appareil muet, capteur défaillant, débordement, broker arrêté, commande invalide, arrêt et relance. |
+| Faire les essais de démonstration et de pannes des deux unités. | Jeudi 10 décembre | en cours | — | Plusieurs scénarios de panne panneau RAM documentés. Perte série physique, purge isolée, température et essais Power Meter à compléter. |
 
 | Vérifier les fichiers, compiler les deux programmes et pousser le travail final sur GitHub. | Vendredi 11 décembre | à faire | — | Dépôt final et documents remis avant 23 h. |
 
@@ -132,6 +132,54 @@ Les résultats des essais sont disponibles dans le dossier `PFI Prog/docs/`.
 Les courbes expérimentales et théoriques sont conservées dans le dossier `PFI Prog/docs/courbes/`.
 
 Les courbes théoriques représentent le comportement attendu et sont distinctes des mesures réelles.
+
+
+## Suivi du 27 novembre 2026
+
+### Travaux réalisés
+
+- Acquisition automatique de 36 variables dans `logs/pid_niveaux.csv` à chaque itération; fichier réinitialisé au démarrage.
+- Huit essais PID sur le panneau réel, avec comparaison des gains et des changements de consigne.
+- Intégration des gains retenus dans `RegulationBassins.cpp` et dans l'aide console de `main.cpp`.
+- Compilation et quatre tests unitaires réussis selon la confirmation de l'opérateur; non réexécutés lors de cette revue du ZIP.
+- Rapport d'optimisation, huit acquisitions CSV, 32 graphiques et deux tableaux de résultats; mise à jour du README, des réglages et des essais du panneau.
+
+### Gains PID actuels
+
+| Bassin | Kp | Ki | Kd |
+|---|---:|---:|---:|
+| GB | 5,0 | 0,70 | 3,0 |
+| PB | 2,0 | 0,22 | 2,0 |
+
+### Résultats de l'essai 07
+
+| Indicateur | GB | PB |
+|---|---:|---:|
+| Consigne | 30 % | 30 % |
+| Niveau final | 29,84 % | 29,48 % |
+| Erreur absolue moyenne des dix dernières mesures | 0,218 point | 0,506 point |
+| Mesures finales à ±1 point | 10/10 | 10/10 |
+
+Régulation active d'environ 46 secondes. Aucun débordement ni alarme enregistré durant cet essai. Les positions des purges ne sont pas enregistrées; le maintien pendant cinq minutes et la répétabilité restent à valider.
+
+### Travaux restant à réaliser ou à valider
+
+- Essai physique avec une purge ouverte et perte RS-232 en fonctionnement.
+- Validation de la synchronisation MQTT des consignes avec le superviseur.
+- Régulation de température du PB et commande des valves chaude/froide.
+- Power Meter : sources actuellement vides, aucune cible CMake; communication série, lecture, MQTT et alarme de perte de lien à développer.
+- Compléter la conception du panneau et les documents du Power Meter, puis vérifier les deux unités avant la remise.
+
+### Documentation
+
+- [Rapport d'optimisation PID](docs/optimisation_pid.md)
+- [Réglages PID](docs/reglages_pid.md)
+- [Essais du panneau](docs/essais_panneau.md)
+- [Acquisitions et graphiques](docs/captures/pid/)
+
+Les captures actuelles sont dans `docs/captures/`. Les courbes théoriques sont distinctes des mesures réelles. Le suivi du 26 novembre est conservé comme historique des réglages de cette date.
+
+Les nouvelles dates visées du 3 décembre pour les tâches en retard sont proposées, sans modification des dates prévues initiales. L’état du dépôt distant reste à confirmer après le push.
 
 
 ## Priorités de réalisation
